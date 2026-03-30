@@ -1,26 +1,23 @@
 <resources>
     <string name="app_name">Expense Management</string>
-    <string name="title_login">Quản lý Chi tiêu</string>
-    <string name="subtitle_login">Đăng nhập để tiếp tục</string>
-    <string name="label_email">Email</string>
-    <string name="label_password">Mật khẩu</string>
-    <string name="hint_email">your@email.com</string>
-    <string name="hint_password">••••••••</string>
-    <string name="prompt_no_account">Chưa có tài khoản?</string>
-    <string name="btn_register_link">Đăng ký ngay</string>
-
-    <string name="error_register_failed">Đăng ký thất bại, vui lòng thử lại</string>
-    <string name="register_success">Đăng ký tài khoản thành công!</string>
-    <string name="error_password_mismatch">Mật khẩu xác nhận không khớp</string>
-    <string name="loading">Đang xử lý...</string>
-    <string name="btn_register">Đăng ký</string>
     <string name="btn_login">Đăng nhập</string>
-    <string name="error_login_failed">Đăng nhập thất bại</string>
-    <string name="error_fullname_required">Vui lòng nhập họ tên</string>
-    <string name="error_fullname_short">Tên quá ngắn</string>
-    <string name="error_email_required">Vui lòng nhập email</string>
-    <string name="error_email_invalid">Email không đúng định dạng</string>
+    <string name="nav_report">Báo cáo</string>
+    <string name="nav_transaction">Giao dịch</string>
+    <string name="nav_add">Thêm giao dịch</string>
+    <string name="nav_wallet">Ví</string>
+    <string name="nav_more">Khác</string>
+    <string name="btn_register">Đăng ký</string>
+    <string name="error_email_invalid">Email không hợp lệ</string>
     <string name="error_password_required">Vui lòng nhập mật khẩu</string>
-    <string name="error_password_short">Mật khẩu phải ít nhất 6 ký tự</string>
+    <string name="error_email_required">Vui lòng nhập email</string>
+    <string name="error_password_short">Mật khẩu quá ngắn</string>
     <string name="error_confirm_required">Vui lòng xác nhận mật khẩu</string>
+    <string name="error_password_mismatch">Mật khẩu không khớp</string>
+    <string name="error_fullname_required">Vui lòng nhập họ tên</string>
+    <string name="error_fullname_short">Họ tên quá ngắn</string>
+    <string name="error_login_failed">Đăng nhập thất bại</string>
+    <string name="error_register_failed">Đăng ký thất bại</string>
+    <string name="register_success">Đăng ký thành công</string>
+    <string name="loading">Đang xử lý...</string>
+
 </resources>

@@ -41,7 +41,6 @@ public class MainActivity extends AppCompatActivity {
             loadFragment(item.getItemId());
             return true;
         });
-        bottomNav.setSelectedItemId(R.id.nav_report);
     }
 
     private void loadFragment(int itemId) {
@@ -61,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
             fragment = PlaceholderFragment.newInstance(" Ví", "Quản lý tài khoản & ví");
         } else {
             // nav_more — TODO: thay bằng MoreFragment
-            fragment = PlaceholderFragment.newInstance(" Khác", "Ngân sách · Cài đặt · Đăng xuất");
+            fragment = PlaceholderFragment.newInstance(" Khác", "Ngân sách · Cài đặt");
         }
 
         getSupportFragmentManager()
