@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -13,6 +14,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.util.Pair;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -23,6 +25,8 @@ import com.example.expensemanagement.Adapters.TransactionAdapter;
 import com.example.expensemanagement.TransactionViewModel;
 import com.example.expensemanagement.model.TransactionEntity;
 import com.example.expensemanagement.model.TransactionItem;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -32,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.UUID;
 
 public class TransactionFragment extends Fragment implements TransactionAdapter.OnTransactionActionListener {
@@ -40,9 +45,12 @@ public class TransactionFragment extends Fragment implements TransactionAdapter.
     private TransactionAdapter adapter;
     private List<TransactionItem> displayList = new ArrayList<>();
     private TransactionViewModel viewModel;
-    private TextView tvBalanceValue, tvEmpty;
+    private TextView tvBalanceValue, tvEmpty, tvDateRangeDisplay;
     private Button btnAddTransaction;
+    private ImageButton btnCalendarPicker;
+    private MaterialButtonToggleGroup toggleFilter;
     private final DecimalFormat decimalFormat = new DecimalFormat("#,###");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     public static TransactionFragment newInstance() {
         return new TransactionFragment();
@@ -65,7 +73,10 @@ public class TransactionFragment extends Fragment implements TransactionAdapter.
         recyclerView = view.findViewById(R.id.recyclerTransactions);
         tvBalanceValue = view.findViewById(R.id.tvBalanceValue);
         tvEmpty = view.findViewById(R.id.tvEmptyState);
+        tvDateRangeDisplay = view.findViewById(R.id.tvDateRangeDisplay);
         btnAddTransaction = view.findViewById(R.id.fabAddTransaction);
+        btnCalendarPicker = view.findViewById(R.id.btnCalendarPicker);
+        toggleFilter = view.findViewById(R.id.toggleFilter);
     }
 
     private void setupRecyclerView() {
@@ -76,13 +87,13 @@ public class TransactionFragment extends Fragment implements TransactionAdapter.
 
     private void setupViewModel() {
         viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
-        viewModel.getAllTransactions().observe(getViewLifecycleOwner(), entities -> {
+        
+        viewModel.getFilteredTransactions().observe(getViewLifecycleOwner(), entities -> {
             displayList.clear();
             long balance = 0;
             if (entities != null) {
                 for (TransactionEntity entity : entities) {
                     boolean isIncome = "income".equalsIgnoreCase(entity.type);
-                    // entities.note đóng vai trò là Title
                     displayList.add(new TransactionItem(entity.transactionId, entity.note, entity.categoryId, entity.transactionDate, (long)entity.amount, isIncome));
                     balance += isIncome ? entity.amount : -entity.amount;
                 }
@@ -95,6 +106,50 @@ public class TransactionFragment extends Fragment implements TransactionAdapter.
 
     private void setupListeners() {
         btnAddTransaction.setOnClickListener(v -> showTransactionDialog(false, -1));
+        
+        btnCalendarPicker.setOnClickListener(v -> showDateRangePicker());
+
+        toggleFilter.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (isChecked) {
+                if (checkedId == R.id.btnFilterAll) {
+                    viewModel.setFilter(TransactionViewModel.FilterType.ALL);
+                    tvDateRangeDisplay.setText("Đang hiển thị: Tất cả");
+                } else if (checkedId == R.id.btnFilterDay) {
+                    viewModel.setFilter(TransactionViewModel.FilterType.DAY);
+                    tvDateRangeDisplay.setText("Đang hiển thị: Hôm nay");
+                } else if (checkedId == R.id.btnFilterWeek) {
+                    viewModel.setFilter(TransactionViewModel.FilterType.WEEK);
+                    tvDateRangeDisplay.setText("Đang hiển thị: Tuần này");
+                } else if (checkedId == R.id.btnFilterMonth) {
+                    viewModel.setFilter(TransactionViewModel.FilterType.MONTH);
+                    tvDateRangeDisplay.setText("Đang hiển thị: Tháng này");
+                }
+            }
+        });
+    }
+
+    private void showDateRangePicker() {
+        MaterialDatePicker<Pair<Long, Long>> picker = MaterialDatePicker.Builder.dateRangePicker()
+                .setTitleText("Chọn khoảng thời gian")
+                .setTheme(com.google.android.material.R.style.ThemeOverlay_MaterialComponents_MaterialCalendar)
+                .build();
+
+        picker.show(getChildFragmentManager(), "DATE_RANGE_PICKER");
+
+        picker.addOnPositiveButtonClickListener(selection -> {
+            if (selection != null && selection.first != null && selection.second != null) {
+                // Điều chỉnh múi giờ để lấy đúng ngày
+                TimeZone timeZone = TimeZone.getDefault();
+                long offset = timeZone.getOffset(selection.first);
+                
+                String start = dateFormat.format(new Date(selection.first - offset));
+                String end = dateFormat.format(new Date(selection.second - offset));
+                
+                viewModel.setCustomFilter(start, end);
+                tvDateRangeDisplay.setText("Từ: " + start + " đến: " + end);
+                toggleFilter.clearChecked(); // Bỏ chọn các nút Ngày/Tuần/Tháng nhanh
+            }
+        });
     }
 
     private void showTransactionDialog(boolean isEdit, int position) {

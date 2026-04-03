@@ -83,9 +83,8 @@ public class MainActivity extends AppCompatActivity {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
         Calendar calendar = Calendar.getInstance();
-        // Để kiểm tra ngay lập tức, bạn hãy thử đặt thời gian sau thời điểm hiện tại 1-2 phút
         calendar.set(Calendar.HOUR_OF_DAY, 18);
-        calendar.set(Calendar.MINUTE, 10); // Ví dụ: đặt 18:05 nếu bây giờ là 18:03
+        calendar.set(Calendar.MINUTE, 10); // Ví dụ: đặt 18:10:00 sẽ đẩy thông báo
         calendar.set(Calendar.SECOND, 0);
 
         if (Calendar.getInstance().after(calendar)) {
