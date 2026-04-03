@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvBudgetCategory"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Tổng thể"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary_green"/>
+
+            <ImageView
+                android:id="@+id/ivDeleteBudget"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="12dp"
+                android:src="@android:drawable/ic_menu_delete"
+                app:tint="@color/expense_red"
+                android:contentDescription="Xóa ngân sách" />
+
+            <TextView
+                android:id="@+id/tvBudgetPercent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvBudgetDates"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="01/01 - 31/01"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="4dp"/>
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progressBudget"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:trackThickness="8dp"
+            app:trackCornerRadius="4dp"
+            android:progress="0"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:id="@+id/tvSpentAmount"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Đã chi: 0 đ"
+                android:textSize="13sp"/>
+
+            <TextView
+                android:id="@+id/tvTotalBudget"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ngân sách: 0 đ"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvBudgetWarning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Cảnh báo: Sắp vượt ngân sách!"
+            android:textColor="@color/expense_red"
+            android:textSize="12sp"
+            android:textStyle="italic"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

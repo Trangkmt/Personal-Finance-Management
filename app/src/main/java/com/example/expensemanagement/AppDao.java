@@ -2,18 +2,24 @@ package com.example.expensemanagement;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
+
+import com.example.expensemanagement.model.BudgetEntity;
+import com.example.expensemanagement.model.CategoryEntity;
+import com.example.expensemanagement.model.TransactionEntity;
+import com.example.expensemanagement.model.UserEntity;
+import com.example.expensemanagement.model.UserSettingsEntity;
 
 import java.util.List;
 
 @Dao
 public interface AppDao {
 
-    // ── Users ──────────────────────────────────────────────
-
+    // Users
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertUser(UserEntity user);
 
@@ -26,25 +32,55 @@ public interface AppDao {
     @Query("UPDATE users SET last_login_at = :time, updated_at = :time WHERE firebase_uid = :firebaseUid")
     void updateLastLogin(String firebaseUid, String time);
 
-    // ── User Settings ──────────────────────────────────────
-
+    // User Settings
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertSettings(UserSettingsEntity settings);
 
     @Query("SELECT * FROM user_settings WHERE user_id = :userId LIMIT 1")
     LiveData<UserSettingsEntity> getSettingsByUserId(String userId);
 
-    // ── Categories ─────────────────────────────────────────
-
+    // Categories
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertAllCategories(List<CategoryEntity> categories);
 
-    @Query("SELECT COUNT(*) FROM categories WHERE is_system = 1")
-    int countSystemCategories();
+    @Query("SELECT * FROM categories WHERE type = :type")
+    List<CategoryEntity> getCategoriesByType(String type);
 
-    @Query("SELECT * FROM categories WHERE type = :type AND parent_id IS NULL ORDER BY sort_order")
-    List<CategoryEntity> getParentCategories(String type);
+    // Transactions
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertTransaction(TransactionEntity transaction);
 
-    @Query("SELECT * FROM categories WHERE parent_id = :parentId ORDER BY sort_order")
-    List<CategoryEntity> getChildCategories(String parentId);
+    @Update
+    void updateTransaction(TransactionEntity transaction);
+
+    @Delete
+    void deleteTransaction(TransactionEntity transaction);
+
+    @Query("SELECT * FROM transactions ORDER BY transaction_date DESC, created_at DESC")
+    LiveData<List<TransactionEntity>> getAllTransactions();
+
+    @Query("SELECT * FROM transactions WHERE transaction_date BETWEEN :startDate AND :endDate ORDER BY transaction_date DESC")
+    LiveData<List<TransactionEntity>> getTransactionsBetweenDates(String startDate, String endDate);
+
+    @Query("SELECT SUM(amount) FROM transactions WHERE type = 'expense' AND transaction_date BETWEEN :startDate AND :endDate")
+    double getTotalSpent(String startDate, String endDate);
+
+    @Query("SELECT SUM(amount) FROM transactions WHERE type = 'expense' AND category_id = :categoryId AND transaction_date BETWEEN :startDate AND :endDate")
+    double getSpentByCategory(String categoryId, String startDate, String endDate);
+
+    // Budgets
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertBudget(BudgetEntity budget);
+
+    @Update
+    void updateBudget(BudgetEntity budget);
+
+    @Delete
+    void deleteBudget(BudgetEntity budget);
+
+    @Query("SELECT * FROM budgets WHERE user_id = :userId")
+    LiveData<List<BudgetEntity>> getBudgets(String userId);
+
+    @Query("SELECT * FROM budgets WHERE user_id = :userId AND (category_id = :categoryId OR category_id IS NULL) AND :date BETWEEN start_date AND end_date LIMIT 1")
+    BudgetEntity getActiveBudget(String userId, String categoryId, String date);
 }

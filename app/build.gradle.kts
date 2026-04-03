@@ -34,6 +34,10 @@ android {
 }
 
 dependencies {
+
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.cardview:cardview:1.0.0")
     // Room
     val room_version = "2.6.1"
     implementation("androidx.room:room-runtime:$room_version")

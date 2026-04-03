@@ -1,4 +1,4 @@
-package com.example.expensemanagement;
+package com.example.expensemanagement.Activitiy;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -12,6 +12,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.expensemanagement.AppDatabase;
+import com.example.expensemanagement.R;
+import com.example.expensemanagement.model.UserEntity;
+import com.example.expensemanagement.model.UserSettingsEntity;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
@@ -102,15 +106,19 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void saveUserData(FirebaseUser firebaseUser, String fullName, String email) {
         String now       = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(new Date());
-        String userId    = UUID.randomUUID().toString();
+        String userId    = firebaseUser.getUid(); // Dùng luôn Firebase UID làm User ID
         String settingId = UUID.randomUUID().toString();
 
         // Lưu vào Room local
         AppDatabase.executor.execute(() -> {
-            UserEntity user = new UserEntity(userId, email, firebaseUser.getUid(), fullName, firebaseUser.getUid(), now, now);
-            UserSettingsEntity settings = new UserSettingsEntity(settingId, userId, now);
-            localDb.appDao().insertUser(user);
-            localDb.appDao().insertSettings(settings);
+            try {
+                UserEntity user = new UserEntity(userId, email, "firebase_auth", fullName, firebaseUser.getUid(), now, now);
+                UserSettingsEntity settings = new UserSettingsEntity(settingId, userId, now);
+                localDb.appDao().insertUser(user);
+                localDb.appDao().insertSettings(settings);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
 
         // Lưu lên Firestore

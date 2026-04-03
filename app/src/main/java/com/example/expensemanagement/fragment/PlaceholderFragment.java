@@ -1,4 +1,4 @@
-package com.example.expensemanagement;
+package com.example.expensemanagement.fragment;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -13,6 +13,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.example.expensemanagement.Activitiy.LoginActivity;
+import com.example.expensemanagement.R;
 import com.google.firebase.auth.FirebaseAuth;
 public class PlaceholderFragment extends Fragment {
 
