@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Expense Management</string>
+    <string name="btn_login">Đăng nhập</string>
+    <string name="nav_report">Báo cáo</string>
+    <string name="nav_transaction">Giao dịch</string>
+    <string name="nav_add">Thêm giao dịch</string>
+    <string name="nav_wallet">Ví</string>
+    <string name="nav_more">Khác</string>
+    <string name="btn_register">Đăng ký</string>
+    <string name="error_email_invalid">Email không hợp lệ</string>
+    <string name="error_password_required">Vui lòng nhập mật khẩu</string>
+    <string name="error_email_required">Vui lòng nhập email</string>
+    <string name="error_password_short">Mật khẩu quá ngắn</string>
+    <string name="error_confirm_required">Vui lòng xác nhận mật khẩu</string>
+    <string name="error_password_mismatch">Mật khẩu không khớp</string>
+    <string name="error_fullname_required">Vui lòng nhập họ tên</string>
+    <string name="error_fullname_short">Họ tên quá ngắn</string>
+    <string name="error_login_failed">Đăng nhập thất bại</string>
+    <string name="error_register_failed">Đăng ký thất bại</string>
+    <string name="register_success">Đăng ký thành công</string>
+    <string name="loading">Đang xử lý...</string>
+
+</resources>
