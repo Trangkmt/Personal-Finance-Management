@@ -12,9 +12,11 @@ import com.example.expensemanagement.model.CategoryEntity;
 import com.example.expensemanagement.model.TransactionEntity;
 import com.example.expensemanagement.model.UserEntity;
 import com.example.expensemanagement.model.UserSettingsEntity;
+import com.example.expensemanagement.model.WalletEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,9 +26,10 @@ import java.util.concurrent.Executors;
         UserSettingsEntity.class,
         CategoryEntity.class,
         TransactionEntity.class,
-        BudgetEntity.class
+        BudgetEntity.class,
+        WalletEntity.class
     },
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -54,6 +57,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                 executor.execute(() -> {
                                     if (INSTANCE != null) {
                                         INSTANCE.appDao().insertAllCategories(buildSeedCategories());
+                                        // Seed initial wallets if needed
                                     }
                                 });
                             }

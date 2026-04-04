@@ -18,9 +18,11 @@ import androidx.fragment.app.Fragment;
 
 import com.example.expensemanagement.NotificationReceiver;
 import com.example.expensemanagement.R;
+import com.example.expensemanagement.fragment.AccountFragment;
 import com.example.expensemanagement.fragment.BudgetFragment;
 import com.example.expensemanagement.fragment.PlaceholderFragment;
 import com.example.expensemanagement.fragment.TransactionFragment;
+import com.example.expensemanagement.fragment.WalletFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -84,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, 18);
-        calendar.set(Calendar.MINUTE, 10); // Ví dụ: đặt 18:10:00 sẽ đẩy thông báo
+        calendar.set(Calendar.MINUTE, 10);
         calendar.set(Calendar.SECOND, 0);
 
         if (Calendar.getInstance().after(calendar)) {
@@ -121,11 +123,11 @@ public class MainActivity extends AppCompatActivity {
         } else if (itemId == R.id.nav_transaction) {
             fragment = TransactionFragment.newInstance();
         } else if (itemId == R.id.nav_add) {
-            fragment = PlaceholderFragment.newInstance("Thêm", "Chức năng thêm nhanh sẽ sớm ra mắt");
-        } else if (itemId == R.id.nav_wallet) {
             fragment = BudgetFragment.newInstance();
+        } else if (itemId == R.id.nav_wallet) {
+            fragment = WalletFragment.newInstance();
         } else {
-            fragment = PlaceholderFragment.newInstance(" Khác", "Cài đặt & Tài khoản");
+            fragment = AccountFragment.newInstance();
         }
 
         getSupportFragmentManager()
