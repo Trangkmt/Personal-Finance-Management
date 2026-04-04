@@ -11,63 +11,65 @@
         android:layout_height="wrap_content">
 
         <!-- HEADER -->
+
+        <!-- THU / CHI -->
+
         <LinearLayout
-            android:orientation="vertical"
-            android:background="@drawable/bg_header"
-            android:padding="20dp"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_header"
+            android:orientation="vertical"
+            android:padding="20dp">
 
             <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="Xin chào,"
                 android:textColor="#DFF0D8"
-                android:textSize="14sp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="nguyen van a"
                 android:textColor="#FFFFFF"
-                android:textStyle="bold"
                 android:textSize="22sp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:textStyle="bold" />
 
             <!-- Tổng số dư -->
             <LinearLayout
-                android:background="@drawable/bg_balance"
-                android:padding="16dp"
-                android:layout_marginTop="16dp"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_balance"
+                android:padding="16dp">
 
                 <LinearLayout
-                    android:orientation="vertical"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                     <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
                         android:text="Tổng số dư"
                         android:textColor="#E0E0E0"
-                        android:textSize="14sp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/tvBalance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
                         android:text="0 đ"
                         android:textColor="#FFFFFF"
                         android:textSize="28sp"
-                        android:textStyle="bold"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                        android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
 
         </LinearLayout>
 
-        <!-- THU / CHI -->
         <LinearLayout
             android:layout_marginTop="16dp"
             android:orientation="horizontal"
