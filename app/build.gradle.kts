@@ -51,6 +51,10 @@ dependencies {
 // Material + CardView
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.cardview:cardview:1.0.0")
+<<<<<<< HEAD
+=======
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+>>>>>>> master
 
     implementation(libs.appcompat)
     implementation(libs.material)

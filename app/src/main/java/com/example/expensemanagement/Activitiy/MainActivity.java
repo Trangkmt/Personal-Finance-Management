@@ -20,6 +20,7 @@ import com.example.expensemanagement.NotificationReceiver;
 import com.example.expensemanagement.R;
 import com.example.expensemanagement.fragment.AccountFragment;
 import com.example.expensemanagement.fragment.BudgetFragment;
+import com.example.expensemanagement.fragment.HomeFragment;
 import com.example.expensemanagement.fragment.PlaceholderFragment;
 import com.example.expensemanagement.fragment.TransactionFragment;
 import com.example.expensemanagement.fragment.WalletFragment;
@@ -86,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, 18);
-        calendar.set(Calendar.MINUTE, 10);
+        calendar.set(Calendar.MINUTE, 10); // Ví dụ: đặt 18:10:00 sẽ đẩy thông báo
         calendar.set(Calendar.SECOND, 0);
 
         if (Calendar.getInstance().after(calendar)) {
@@ -119,15 +120,17 @@ public class MainActivity extends AppCompatActivity {
         Fragment fragment;
 
         if (itemId == R.id.nav_report) {
-            fragment = PlaceholderFragment.newInstance(" Báo cáo", "Thống kê & biểu đồ chi tiêu");
+            fragment = HomeFragment.newInstance();
         } else if (itemId == R.id.nav_transaction) {
             fragment = TransactionFragment.newInstance();
         } else if (itemId == R.id.nav_add) {
             fragment = BudgetFragment.newInstance();
         } else if (itemId == R.id.nav_wallet) {
             fragment = WalletFragment.newInstance();
-        } else {
+        } else if (itemId == R.id.nav_more) {
             fragment = AccountFragment.newInstance();
+        } else {
+            fragment = PlaceholderFragment.newInstance("Khác", "Tính năng đang được phát triển");
         }
 
         getSupportFragmentManager()

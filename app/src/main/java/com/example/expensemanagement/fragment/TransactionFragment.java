@@ -86,7 +86,7 @@ public class TransactionFragment extends Fragment implements TransactionAdapter.
     }
 
     private void setupViewModel() {
-        viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
         
         viewModel.getFilteredTransactions().observe(getViewLifecycleOwner(), entities -> {
             displayList.clear();
