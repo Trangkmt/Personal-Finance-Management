@@ -16,7 +16,6 @@ import com.example.expensemanagement.model.WalletEntity;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -57,7 +56,6 @@ public abstract class AppDatabase extends RoomDatabase {
                                 executor.execute(() -> {
                                     if (INSTANCE != null) {
                                         INSTANCE.appDao().insertAllCategories(buildSeedCategories());
-                                        // Seed initial wallets if needed
                                     }
                                 });
                             }
