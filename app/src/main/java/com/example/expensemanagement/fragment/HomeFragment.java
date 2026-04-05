@@ -20,6 +20,8 @@ import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -63,7 +65,16 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadUserInfo() {
-        tvName.setText("nguyen van a");
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            String name = user.getDisplayName();
+            if (name == null || name.isEmpty()) {
+                name = user.getEmail();
+            }
+            tvName.setText(name);
+        } else {
+            tvName.setText("Khách");
+        }
     }
 
     private void observeData() {

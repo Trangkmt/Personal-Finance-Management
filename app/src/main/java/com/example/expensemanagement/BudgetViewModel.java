@@ -33,11 +33,12 @@ public class BudgetViewModel extends AndroidViewModel {
         return appDao.getBudgets(userId);
     }
 
-    public double getSpentAmount(String categoryId, String startDate, String endDate) {
+    // Đã sửa: Thêm userId vào tham số và truyền vào AppDao
+    public double getSpentAmount(String userId, String categoryId, String startDate, String endDate) {
         if (categoryId == null) {
-            return appDao.getTotalSpent(startDate, endDate);
+            return appDao.getTotalSpent(userId, startDate, endDate);
         } else {
-            return appDao.getSpentByCategory(categoryId, startDate, endDate);
+            return appDao.getSpentByCategory(userId, categoryId, startDate, endDate);
         }
     }
 }
