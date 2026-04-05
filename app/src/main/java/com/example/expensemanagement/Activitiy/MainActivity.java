@@ -61,7 +61,9 @@ public class MainActivity extends AppCompatActivity {
         setupBottomNav();
 
         if (savedInstanceState == null) {
-            loadFragment(R.id.nav_transaction);
+            // Sửa: Vào ngay biểu đồ chi tiêu (nav_report) thay vì nav_transaction
+            bottomNav.setSelectedItemId(R.id.nav_report);
+            loadFragment(R.id.nav_report);
         }
 
         checkNotificationPermission();

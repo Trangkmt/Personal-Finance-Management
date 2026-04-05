@@ -45,8 +45,8 @@ public interface AppDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertAllCategories(List<CategoryEntity> categories);
 
-    @Query("SELECT * FROM categories WHERE type = :type")
-    List<CategoryEntity> getCategoriesByType(String type);
+    @Query("SELECT * FROM categories WHERE type = :type AND (user_id IS NULL OR user_id = :userId)")
+    List<CategoryEntity> getCategoriesByType(String type, String userId);
 
     // Transactions
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -58,17 +58,17 @@ public interface AppDao {
     @Delete
     void deleteTransaction(TransactionEntity transaction);
 
-    @Query("SELECT * FROM transactions ORDER BY transaction_date DESC, created_at DESC")
-    LiveData<List<TransactionEntity>> getAllTransactions();
+    @Query("SELECT * FROM transactions WHERE user_id = :userId ORDER BY transaction_date DESC, created_at DESC")
+    LiveData<List<TransactionEntity>> getAllTransactions(String userId);
 
-    @Query("SELECT * FROM transactions WHERE transaction_date BETWEEN :startDate AND :endDate ORDER BY transaction_date DESC")
-    LiveData<List<TransactionEntity>> getTransactionsBetweenDates(String startDate, String endDate);
+    @Query("SELECT * FROM transactions WHERE user_id = :userId AND transaction_date BETWEEN :startDate AND :endDate ORDER BY transaction_date DESC")
+    LiveData<List<TransactionEntity>> getTransactionsBetweenDates(String userId, String startDate, String endDate);
 
-    @Query("SELECT SUM(amount) FROM transactions WHERE type = 'expense' AND transaction_date BETWEEN :startDate AND :endDate")
-    double getTotalSpent(String startDate, String endDate);
+    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'expense' AND transaction_date BETWEEN :startDate AND :endDate")
+    double getTotalSpent(String userId, String startDate, String endDate);
 
-    @Query("SELECT SUM(amount) FROM transactions WHERE type = 'expense' AND category_id = :categoryId AND transaction_date BETWEEN :startDate AND :endDate")
-    double getSpentByCategory(String categoryId, String startDate, String endDate);
+    @Query("SELECT SUM(amount) FROM transactions WHERE user_id = :userId AND type = 'expense' AND category_id = :categoryId AND transaction_date BETWEEN :startDate AND :endDate")
+    double getSpentByCategory(String userId, String categoryId, String startDate, String endDate);
 
     // Budgets
     @Insert(onConflict = OnConflictStrategy.REPLACE)

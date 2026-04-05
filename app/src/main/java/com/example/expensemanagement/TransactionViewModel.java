@@ -9,6 +9,7 @@ import androidx.lifecycle.Transformations;
 
 import com.example.expensemanagement.model.BudgetEntity;
 import com.example.expensemanagement.model.TransactionEntity;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -54,10 +55,17 @@ public class TransactionViewModel extends AndroidViewModel {
         filterConfig.setValue(new FilterConfig(FilterType.CUSTOM, start, end));
     }
 
+    private String getUserId() {
+        return FirebaseAuth.getInstance().getUid();
+    }
+
     public LiveData<List<TransactionEntity>> getFilteredTransactions() {
         return Transformations.switchMap(filterConfig, config -> {
+            String userId = getUserId();
+            if (userId == null) return new MutableLiveData<>();
+
             if (config.type == FilterType.ALL) {
-                return appDao.getAllTransactions();
+                return appDao.getAllTransactions(userId);
             }
             
             String start, end;
@@ -69,7 +77,7 @@ public class TransactionViewModel extends AndroidViewModel {
                 start = dates[0];
                 end = dates[1];
             }
-            return appDao.getTransactionsBetweenDates(start, end);
+            return appDao.getTransactionsBetweenDates(userId, start, end);
         });
     }
 
@@ -102,10 +110,12 @@ public class TransactionViewModel extends AndroidViewModel {
 
     private void checkBudgetExceeded(TransactionEntity transaction) {
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        // getActiveBudget đã có userId ở bước trước
         BudgetEntity budget = appDao.getActiveBudget(transaction.userId, transaction.categoryId, today);
         
         if (budget != null) {
-            double spent = appDao.getSpentByCategory(budget.categoryId, budget.startDate, budget.endDate);
+            // Sửa: Thêm userId vào hàm getSpentByCategory
+            double spent = appDao.getSpentByCategory(transaction.userId, budget.categoryId, budget.startDate, budget.endDate);
             if (spent > budget.amount) {
                 NotificationHelper.showNotification(
                         application,
@@ -127,6 +137,8 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public LiveData<List<TransactionEntity>> getAllTransactions() {
-        return appDao.getAllTransactions();
+        String userId = getUserId();
+        if (userId == null) return new MutableLiveData<>();
+        return appDao.getAllTransactions(userId);
     }
 }

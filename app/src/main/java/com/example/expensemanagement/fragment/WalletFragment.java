@@ -35,7 +35,7 @@ import java.util.UUID;
 public class WalletFragment extends Fragment {
 
     private TextView tvName, tvEmail, tvTotal;
-    private Button btnLogout, btnTransfer;
+    private Button btnTransfer; // Đã loại bỏ btnLogout
     private ImageButton btnAdd;
     private RecyclerView recyclerWallet;
     private WalletAdapter adapter;
@@ -67,16 +67,15 @@ public class WalletFragment extends Fragment {
         tvName = view.findViewById(R.id.tvName);
         tvEmail = view.findViewById(R.id.tvEmail);
         tvTotal = view.findViewById(R.id.tvTotal);
-        btnLogout = view.findViewById(R.id.btnLogout);
+        // Loại bỏ logic liên quan đến btnLogout
+        View btnLogout = view.findViewById(R.id.btnLogout);
+        if (btnLogout != null) {
+            btnLogout.setVisibility(View.GONE);
+        }
+        
         btnAdd = view.findViewById(R.id.btnAdd);
         btnTransfer = view.findViewById(R.id.btnTransfer);
         recyclerWallet = view.findViewById(R.id.recyclerWallet);
-
-        btnLogout.setText("Đăng xuất");
-        btnLogout.setOnClickListener(v -> {
-            mAuth.signOut();
-            if (getActivity() != null) getActivity().finish();
-        });
 
         btnAdd.setOnClickListener(v -> showAddWalletDialog());
         btnTransfer.setOnClickListener(v -> showTransferDialog());

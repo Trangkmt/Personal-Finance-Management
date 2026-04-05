@@ -74,8 +74,9 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.ViewHolder
             tvTotal.setText("Ngân sách: " + formatter.format(budget.amount) + " đ");
 
             AppDatabase.executor.execute(() -> {
-                double spent = viewModel.getSpentAmount(budget.categoryId, budget.startDate, budget.endDate);
-                int percent = (int) ((spent / budget.amount) * 100);
+                // Đã sửa: Truyền thêm budget.userId vào làm tham số thứ nhất
+                double spent = viewModel.getSpentAmount(budget.userId, budget.categoryId, budget.startDate, budget.endDate);
+                int percent = budget.amount > 0 ? (int) ((spent / budget.amount) * 100) : 0;
 
                 itemView.post(() -> {
                     tvSpent.setText("Đã chi: " + formatter.format(spent) + " đ");
