@@ -19,25 +19,22 @@ public class BudgetViewModel extends AndroidViewModel {
         syncHelper = new FirestoreSyncHelper(appDao);
     }
 
+    /** Thêm budget: lưu Room (background) + push Firestore (main thread) */
     public void insert(BudgetEntity budget) {
-        AppDatabase.executor.execute(() -> {
-            appDao.insertBudget(budget);
-            syncHelper.pushBudget(budget);
-        });
+        AppDatabase.executor.execute(() -> appDao.insertBudget(budget)); // Room: background
+        syncHelper.pushBudget(budget);                                   // Firestore: main thread ✅
     }
 
+    /** Sửa budget: cập nhật Room (background) + push Firestore (main thread) */
     public void update(BudgetEntity budget) {
-        AppDatabase.executor.execute(() -> {
-            appDao.updateBudget(budget);
-            syncHelper.pushBudget(budget);
-        });
+        AppDatabase.executor.execute(() -> appDao.updateBudget(budget));
+        syncHelper.pushBudget(budget);
     }
 
+    /** Xóa budget: xóa Room (background) + soft-delete Firestore (main thread) */
     public void delete(BudgetEntity budget) {
-        AppDatabase.executor.execute(() -> {
-            appDao.deleteBudget(budget);
-            syncHelper.pushDeleteBudget(budget.budgetId);
-        });
+        AppDatabase.executor.execute(() -> appDao.deleteBudget(budget));
+        syncHelper.pushDeleteBudget(budget.budgetId);
     }
 
     public LiveData<List<BudgetEntity>> getBudgets(String userId) {
