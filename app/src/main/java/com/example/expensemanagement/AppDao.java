@@ -45,12 +45,18 @@ public interface AppDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertAllCategories(List<CategoryEntity> categories);
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertCategory(CategoryEntity category);
+
     @Query("SELECT * FROM categories WHERE type = :type AND (user_id IS NULL OR user_id = :userId)")
     List<CategoryEntity> getCategoriesByType(String type, String userId);
 
     // Transactions
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertTransaction(TransactionEntity transaction);
+
+    @Query("SELECT * FROM transactions WHERE transaction_id = :transactionId LIMIT 1")
+    TransactionEntity getTransactionById(String transactionId);
 
     @Update
     void updateTransaction(TransactionEntity transaction);
@@ -82,6 +88,9 @@ public interface AppDao {
 
     @Query("SELECT * FROM budgets WHERE user_id = :userId")
     LiveData<List<BudgetEntity>> getBudgets(String userId);
+
+    @Query("SELECT * FROM budgets WHERE budget_id = :budgetId LIMIT 1")
+    BudgetEntity getBudgetById(String budgetId);
 
     @Query("SELECT * FROM budgets WHERE user_id = :userId AND (category_id = :categoryId OR category_id IS NULL) AND :date BETWEEN start_date AND end_date LIMIT 1")
     BudgetEntity getActiveBudget(String userId, String categoryId, String date);

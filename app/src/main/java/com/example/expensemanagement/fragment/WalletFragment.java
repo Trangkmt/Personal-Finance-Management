@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.expensemanagement.AppDatabase;
+import com.example.expensemanagement.FirestoreSyncHelper;
 import com.example.expensemanagement.R;
 import com.example.expensemanagement.Adapters.WalletAdapter;
 import com.example.expensemanagement.model.WalletEntity;
@@ -35,12 +36,13 @@ import java.util.UUID;
 public class WalletFragment extends Fragment {
 
     private TextView tvName, tvEmail, tvTotal;
-    private Button btnTransfer; // Đã loại bỏ btnLogout
+    private Button btnTransfer;
     private ImageButton btnAdd;
     private RecyclerView recyclerWallet;
     private WalletAdapter adapter;
     private FirebaseAuth mAuth;
     private AppDatabase db;
+    private FirestoreSyncHelper syncHelper;
     private List<WalletEntity> walletList = new ArrayList<>();
 
     public static WalletFragment newInstance() {
@@ -54,7 +56,8 @@ public class WalletFragment extends Fragment {
 
         mAuth = FirebaseAuth.getInstance();
         db = AppDatabase.getInstance(getContext());
-        
+        syncHelper = new FirestoreSyncHelper(db.appDao());
+
         initViews(view);
         setupUser();
         setupRecyclerView();
@@ -64,16 +67,14 @@ public class WalletFragment extends Fragment {
     }
 
     private void initViews(View view) {
-        tvName = view.findViewById(R.id.tvName);
+        tvName  = view.findViewById(R.id.tvName);
         tvEmail = view.findViewById(R.id.tvEmail);
         tvTotal = view.findViewById(R.id.tvTotal);
-        // Loại bỏ logic liên quan đến btnLogout
+
         View btnLogout = view.findViewById(R.id.btnLogout);
-        if (btnLogout != null) {
-            btnLogout.setVisibility(View.GONE);
-        }
-        
-        btnAdd = view.findViewById(R.id.btnAdd);
+        if (btnLogout != null) btnLogout.setVisibility(View.GONE);
+
+        btnAdd      = view.findViewById(R.id.btnAdd);
         btnTransfer = view.findViewById(R.id.btnTransfer);
         recyclerWallet = view.findViewById(R.id.recyclerWallet);
 
@@ -84,7 +85,8 @@ public class WalletFragment extends Fragment {
     private void setupUser() {
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
-            tvName.setText(user.getDisplayName() != null && !user.getDisplayName().isEmpty() ? user.getDisplayName() : "Người dùng");
+            tvName.setText(user.getDisplayName() != null && !user.getDisplayName().isEmpty()
+                    ? user.getDisplayName() : "Người dùng");
             tvEmail.setText(user.getEmail());
         }
     }
@@ -94,18 +96,18 @@ public class WalletFragment extends Fragment {
         recyclerWallet.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerWallet.setAdapter(adapter);
 
-        adapter.setOnWalletClickListener(wallet -> {
-            new AlertDialog.Builder(getContext())
-                    .setTitle("Xóa ví")
-                    .setMessage("Bạn có chắc muốn xóa ví '" + wallet.getName() + "'?")
-                    .setPositiveButton("Xóa", (dialog, which) -> {
-                        AppDatabase.executor.execute(() -> {
-                            db.appDao().deleteWallet(wallet);
-                        });
-                    })
-                    .setNegativeButton("Hủy", null)
-                    .show();
-        });
+        adapter.setOnWalletClickListener(wallet ->
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Xóa ví")
+                        .setMessage("Bạn có chắc muốn xóa ví '" + wallet.getName() + "'?")
+                        .setPositiveButton("Xóa", (dialog, which) -> {
+                            // Xóa Room + push delete lên Firestore
+                            AppDatabase.executor.execute(() -> db.appDao().deleteWallet(wallet));
+                            syncHelper.pushDeleteWallet(wallet.getId());
+                        })
+                        .setNegativeButton("Hủy", null)
+                        .show()
+        );
     }
 
     private void observeWallets() {
@@ -116,9 +118,8 @@ public class WalletFragment extends Fragment {
             walletList = wallets;
             adapter.setWallets(wallets);
             updateTotalBalance(wallets);
-            
-            // Show/hide transfer layout
-            View layoutTransfer = getView().findViewById(R.id.layoutTransfer);
+
+            View layoutTransfer = getView() != null ? getView().findViewById(R.id.layoutTransfer) : null;
             if (layoutTransfer != null) {
                 layoutTransfer.setVisibility(wallets.size() >= 2 ? View.VISIBLE : View.GONE);
             }
@@ -127,19 +128,17 @@ public class WalletFragment extends Fragment {
 
     private void updateTotalBalance(List<WalletEntity> wallets) {
         double total = 0;
-        for (WalletEntity w : wallets) {
-            total += w.getBalance();
-        }
+        for (WalletEntity w : wallets) total += w.getBalance();
         NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
         tvTotal.setText(formatter.format(total));
     }
 
     private void showAddWalletDialog() {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_wallet, null);
-        EditText etName = dialogView.findViewById(R.id.etWalletName);
+        EditText etName    = dialogView.findViewById(R.id.etWalletName);
         EditText etBalance = dialogView.findViewById(R.id.etInitialBalance);
-        Spinner spnType = dialogView.findViewById(R.id.spnWalletType);
-        Spinner spnIcon = dialogView.findViewById(R.id.spnWalletIcon);
+        Spinner spnType    = dialogView.findViewById(R.id.spnWalletType);
+        Spinner spnIcon    = dialogView.findViewById(R.id.spnWalletIcon);
 
         String[] types = {"cash", "bank", "e-wallet"};
         String[] icons = {"💵", "🏦", "📱", "💳", "🏪", "💰"};
@@ -154,19 +153,17 @@ public class WalletFragment extends Fragment {
                         Toast.makeText(getContext(), "Vui lòng nhập tên ví", Toast.LENGTH_SHORT).show();
                         return;
                     }
-
                     double balance = balanceStr.isEmpty() ? 0 : Double.parseDouble(balanceStr);
-                    String type = types[spnType.getSelectedItemPosition()];
-                    String icon = icons[spnIcon.getSelectedItemPosition()];
+                    String type   = types[spnType.getSelectedItemPosition()];
+                    String icon   = icons[spnIcon.getSelectedItemPosition()];
                     String userId = mAuth.getCurrentUser().getUid();
 
-                    AppDatabase.executor.execute(() -> {
-                        WalletEntity wallet = new WalletEntity(
-                                UUID.randomUUID().toString(),
-                                userId, name, type, balance, icon
-                        );
-                        db.appDao().insertWallet(wallet);
-                    });
+                    WalletEntity wallet = new WalletEntity(
+                            UUID.randomUUID().toString(), userId, name, type, balance, icon);
+
+                    // Lưu Room + push Firestore
+                    AppDatabase.executor.execute(() -> db.appDao().insertWallet(wallet));
+                    syncHelper.pushWallet(wallet);
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
@@ -176,16 +173,15 @@ public class WalletFragment extends Fragment {
         if (walletList.size() < 2) return;
 
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_transfer, null);
-        Spinner spnFrom = dialogView.findViewById(R.id.spnFromWallet);
-        Spinner spnTo = dialogView.findViewById(R.id.spnToWallet);
+        Spinner spnFrom  = dialogView.findViewById(R.id.spnFromWallet);
+        Spinner spnTo    = dialogView.findViewById(R.id.spnToWallet);
         EditText etAmount = dialogView.findViewById(R.id.etTransferAmount);
 
         List<String> walletNames = new ArrayList<>();
-        for (WalletEntity w : walletList) {
-            walletNames.add(w.getIcon() + " " + w.getName());
-        }
+        for (WalletEntity w : walletList) walletNames.add(w.getIcon() + " " + w.getName());
 
-        ArrayAdapter<String> walletAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, walletNames);
+        ArrayAdapter<String> walletAdapter = new ArrayAdapter<>(getContext(),
+                android.R.layout.simple_spinner_item, walletNames);
         walletAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spnFrom.setAdapter(walletAdapter);
         spnTo.setAdapter(walletAdapter);
@@ -195,7 +191,7 @@ public class WalletFragment extends Fragment {
                 .setView(dialogView)
                 .setPositiveButton("Chuyển", (dialog, which) -> {
                     int fromIdx = spnFrom.getSelectedItemPosition();
-                    int toIdx = spnTo.getSelectedItemPosition();
+                    int toIdx   = spnTo.getSelectedItemPosition();
                     String amountStr = etAmount.getText().toString().trim();
 
                     if (fromIdx == toIdx) {
@@ -206,7 +202,7 @@ public class WalletFragment extends Fragment {
 
                     double amount = Double.parseDouble(amountStr);
                     WalletEntity fromWallet = walletList.get(fromIdx);
-                    WalletEntity toWallet = walletList.get(toIdx);
+                    WalletEntity toWallet   = walletList.get(toIdx);
 
                     if (fromWallet.getBalance() < amount) {
                         Toast.makeText(getContext(), "Số dư không đủ", Toast.LENGTH_SHORT).show();
@@ -215,6 +211,12 @@ public class WalletFragment extends Fragment {
 
                     AppDatabase.executor.execute(() -> {
                         db.appDao().transferMoney(fromWallet.getId(), toWallet.getId(), amount);
+
+                        // Push cả 2 ví lên Firestore sau khi transfer xong
+                        WalletEntity updatedFrom = db.appDao().getWalletById(fromWallet.getId());
+                        WalletEntity updatedTo   = db.appDao().getWalletById(toWallet.getId());
+                        if (updatedFrom != null) syncHelper.pushWallet(updatedFrom);
+                        if (updatedTo   != null) syncHelper.pushWallet(updatedTo);
                     });
                 })
                 .setNegativeButton("Hủy", null)
