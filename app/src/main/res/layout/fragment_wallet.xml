@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F3F4F6">
+    android:background="@color/screen_bg">
 
     <!-- HEADER -->
     <LinearLayout
@@ -25,13 +25,14 @@
 
             <!-- Avatar -->
             <TextView
+                android:id="@+id/tvAvatar"
                 android:layout_width="60dp"
                 android:layout_height="60dp"
                 android:gravity="center"
                 android:text="👤"
                 android:textSize="24sp"
-                android:background="#33FFFFFF"
-                android:textColor="#FFFFFF"
+                android:background="@color/overlay_white_20"
+                android:textColor="@color/white"
                 tools:ignore="HardcodedText" />
 
             <!-- Name + Email -->
@@ -46,7 +47,7 @@
                     android:id="@+id/tvName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/white"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     tools:ignore="HardcodedText" />
@@ -64,9 +65,10 @@
                 android:id="@+id/btnLogout"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
+                android:text="Đăng xuất"
                 android:textSize="12sp"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#33FFFFFF" />
+                android:textColor="@color/white"
+                android:backgroundTint="@color/overlay_white_20" />
         </LinearLayout>
 
         <!-- TOTAL -->
@@ -75,7 +77,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:padding="16dp"
-            android:background="#33FFFFFF">
+            android:background="@color/overlay_white_20">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -85,6 +87,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:text="Tổng số dư"
                     android:textColor="#E6FFFFFF"
                     android:textSize="14sp" />
 
@@ -92,7 +95,7 @@
                     android:id="@+id/tvTotal"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/white"
                     android:textSize="26sp"
                     android:textStyle="bold"
                     android:paddingTop="4dp" />
@@ -121,17 +124,18 @@
                 android:text="Ví của tôi"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="#111827"
+                android:textColor="@color/text_primary"
                 android:layout_weight="1" />
 
             <ImageButton
                 android:id="@+id/btnAdd"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:background="@color/primary_green"
+                android:background="@drawable/bg_circle_green"
                 android:src="@android:drawable/ic_input_add"
                 android:padding="8dp"
-                app:tint="#FFFFFF" />
+                app:tint="@color/white"
+                android:contentDescription="Thêm ví" />
         </LinearLayout>
 
         <!-- LIST WALLET -->
@@ -143,32 +147,40 @@
             android:layout_marginTop="12dp"/>
 
         <!-- TRANSFER -->
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/layoutTransfer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:padding="16dp"
             android:layout_marginTop="10dp"
-            android:elevation="3dp">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/divider"
+            app:cardBackgroundColor="@color/card_bg">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Chuyển tiền"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#111827"/>
-
-            <Button
-                android:id="@+id/btnTransfer"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Chuyển tiền giữa các ví"
-                android:layout_marginTop="10dp"
-                android:backgroundTint="@color/primary_green"
-                android:textColor="#FFFFFF"/>
-        </LinearLayout>
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Chuyển tiền"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+
+                <Button
+                    android:id="@+id/btnTransfer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Chuyển tiền giữa các ví"
+                    android:layout_marginTop="10dp"
+                    android:backgroundTint="@color/primary_green"
+                    android:textColor="@color/white"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </LinearLayout>

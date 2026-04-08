@@ -45,7 +45,10 @@
                 android:layout_height="wrap_content"
                 android:text="0%"
                 android:textSize="14sp"
-                android:textStyle="bold"/>
+                android:textStyle="bold"
+                android:background="@color/primary_extra_light"
+                android:paddingHorizontal="4dp"
+                android:paddingVertical="2dp"/>
         </LinearLayout>
 
         <TextView
@@ -64,6 +67,8 @@
             android:layout_marginTop="12dp"
             app:trackThickness="8dp"
             app:trackCornerRadius="4dp"
+            app:indicatorColor="@color/primary_green"
+            app:trackColor="@color/primary_light"
             android:progress="0"/>
 
         <LinearLayout
@@ -94,7 +99,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Cảnh báo: Sắp vượt ngân sách!"
+            android:text="⚠ Cảnh báo: Sắp vượt ngân sách!"
             android:textColor="@color/expense_red"
             android:textSize="12sp"
             android:textStyle="italic"
