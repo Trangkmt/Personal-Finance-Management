@@ -50,7 +50,19 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (mAuth.getCurrentUser() != null) navigateToMain();
+        // Nếu đã có session Firebase → pull data rồi mới vào app
+        // KHÔNG navigateToMain() ngay, phải sync trước
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            setLoading(true);
+            FirestoreSyncHelper syncHelper = new FirestoreSyncHelper(localDb.appDao());
+            syncHelper.pullAllForUser(currentUser.getUid(), () ->
+                    runOnUiThread(() -> {
+                        setLoading(false);
+                        navigateToMain();
+                    })
+            );
+        }
     }
 
     private void initViews() {
