@@ -146,7 +146,6 @@
                         android:textSize="13sp"
                         android:textColor="@color/primary_dark"
                         android:textStyle="bold"
-                        android:paintFlags="8"
                         android:clickable="true"
                         android:focusable="true"/>
                 </LinearLayout>
