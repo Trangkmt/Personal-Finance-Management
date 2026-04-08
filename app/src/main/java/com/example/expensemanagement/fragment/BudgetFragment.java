@@ -80,7 +80,6 @@ public class BudgetFragment extends Fragment {
         Button btnSave = dialogView.findViewById(R.id.btnSaveBudget);
         Button btnCancel = dialogView.findViewById(R.id.btnCancelBudget);
 
-        // Setup Spinner with categories (including "Overall")
         List<String> categories = new ArrayList<>();
         categories.add("Tổng thể");
         categories.add("Ăn uống");
@@ -95,6 +94,12 @@ public class BudgetFragment extends Fragment {
         btnCancel.setOnClickListener(v -> dialog.dismiss());
 
         btnSave.setOnClickListener(v -> {
+            String userId = FirebaseAuth.getInstance().getUid();
+            if (userId == null) {
+                Toast.makeText(getContext(), "Lỗi: Chưa đăng nhập", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             String amountStr = etAmount.getText().toString();
             if (amountStr.isEmpty()) {
                 Toast.makeText(getContext(), "Vui lòng nhập số tiền", Toast.LENGTH_SHORT).show();
@@ -104,9 +109,6 @@ public class BudgetFragment extends Fragment {
             double amount = Double.parseDouble(amountStr);
             String selectedCategory = spCategory.getSelectedItem().toString();
             String categoryId = selectedCategory.equals("Tổng thể") ? null : selectedCategory;
-
-            String userId = FirebaseAuth.getInstance().getUid();
-            if (userId == null) userId = "default_user";
 
             Calendar cal = Calendar.getInstance();
             cal.set(Calendar.DAY_OF_MONTH, 1);
@@ -127,7 +129,7 @@ public class BudgetFragment extends Fragment {
                     now
             );
 
-            viewModel.insert(budget);
+            viewModel.insert(budget); // ViewModel đã được cập nhật để push lên Firestore
             dialog.dismiss();
             Toast.makeText(getContext(), "Đã thiết lập ngân sách", Toast.LENGTH_SHORT).show();
         });

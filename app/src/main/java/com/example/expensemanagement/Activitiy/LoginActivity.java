@@ -13,6 +13,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.expensemanagement.AppDatabase;
+import com.example.expensemanagement.FirestoreSyncHelper;
 import com.example.expensemanagement.R;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -65,7 +66,7 @@ public class LoginActivity extends AppCompatActivity {
     private void setupListeners() {
         btnLogin.setOnClickListener(v -> attemptLogin());
         tvGoToRegister.setOnClickListener(v ->
-            startActivity(new Intent(LoginActivity.this, RegisterActivity.class))
+                startActivity(new Intent(LoginActivity.this, RegisterActivity.class))
         );
         etEmail.setOnFocusChangeListener((v, f)    -> { if (f) tilEmail.setError(null); });
         etPassword.setOnFocusChangeListener((v, f) -> { if (f) tilPassword.setError(null); });
@@ -79,25 +80,40 @@ public class LoginActivity extends AppCompatActivity {
 
         setLoading(true);
         mAuth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this, task -> {
-                if (task.isSuccessful()) {
-                    FirebaseUser firebaseUser = mAuth.getCurrentUser();
-                    if (firebaseUser != null) {
-                        String now = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(new Date());
-                        AppDatabase.executor.execute(() ->
-                            localDb.appDao().updateLastLogin(firebaseUser.getUid(), now)
-                        );
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            String uid = firebaseUser.getUid();
+                            String now = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(new Date());
+
+                            // Cập nhật last_login local
+                            AppDatabase.executor.execute(() ->
+                                    localDb.appDao().updateLastLogin(uid, now)
+                            );
+
+                            // ── PULL từ Firestore về Room ──────────────────────────
+                            FirestoreSyncHelper syncHelper = new FirestoreSyncHelper(localDb.appDao());
+                            syncHelper.pullAllForUser(uid, () ->
+                                    runOnUiThread(() -> {
+                                        setLoading(false);
+                                        Toast.makeText(this, "Đồng bộ dữ liệu thành công!", Toast.LENGTH_SHORT).show();
+                                        navigateToMain();
+                                    })
+                            );
+                            // ────────────────────────────────────────────────────────
+                        } else {
+                            setLoading(false);
+                            navigateToMain();
+                        }
+                    } else {
+                        setLoading(false);
+                        String msg = task.getException() != null
+                                ? getFirebaseErrorMessage(task.getException().getMessage())
+                                : getString(R.string.error_login_failed);
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
                     }
-                    setLoading(false);
-                    navigateToMain();
-                } else {
-                    setLoading(false);
-                    String msg = task.getException() != null
-                        ? getFirebaseErrorMessage(task.getException().getMessage())
-                        : getString(R.string.error_login_failed);
-                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
-                }
-            });
+                });
     }
 
     private boolean validateInput(String email, String password) {

@@ -20,7 +20,8 @@ import java.util.Locale;
 public class TransactionViewModel extends AndroidViewModel {
     private final AppDao appDao;
     private final Application application;
-    
+    private final FirestoreSyncHelper syncHelper;
+
     private final MutableLiveData<FilterConfig> filterConfig = new MutableLiveData<>(new FilterConfig(FilterType.ALL));
 
     public enum FilterType { ALL, DAY, WEEK, MONTH, CUSTOM }
@@ -45,6 +46,7 @@ public class TransactionViewModel extends AndroidViewModel {
         super(application);
         this.application = application;
         appDao = AppDatabase.getInstance(application).appDao();
+        syncHelper = new FirestoreSyncHelper(appDao);
     }
 
     public void setFilter(FilterType type) {
@@ -67,7 +69,7 @@ public class TransactionViewModel extends AndroidViewModel {
             if (config.type == FilterType.ALL) {
                 return appDao.getAllTransactions(userId);
             }
-            
+
             String start, end;
             if (config.type == FilterType.CUSTOM) {
                 start = config.startDate;
@@ -99,6 +101,7 @@ public class TransactionViewModel extends AndroidViewModel {
         return new String[]{start, end};
     }
 
+    /** Thêm transaction: lưu Room + push Firestore */
     public void insert(TransactionEntity transaction) {
         AppDatabase.executor.execute(() -> {
             appDao.insertTransaction(transaction);
@@ -106,39 +109,45 @@ public class TransactionViewModel extends AndroidViewModel {
                 checkBudgetExceeded(transaction);
             }
         });
+        // Push lên Firestore (chạy độc lập, không block UI)
+        syncHelper.pushTransaction(transaction);
     }
 
-    private void checkBudgetExceeded(TransactionEntity transaction) {
-        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        // getActiveBudget đã có userId ở bước trước
-        BudgetEntity budget = appDao.getActiveBudget(transaction.userId, transaction.categoryId, today);
-        
-        if (budget != null) {
-            // Sửa: Thêm userId vào hàm getSpentByCategory
-            double spent = appDao.getSpentByCategory(transaction.userId, budget.categoryId, budget.startDate, budget.endDate);
-            if (spent > budget.amount) {
-                NotificationHelper.showNotification(
-                        application,
-                        "Cảnh báo vượt ngân sách!",
-                        "Bạn đã chi tiêu " + String.format(Locale.getDefault(), "%,.0f", spent) + 
-                        " đ cho mục " + (budget.categoryId == null ? "Tổng thể" : budget.categoryId) + 
-                        ", vượt mức ngân sách " + String.format(Locale.getDefault(), "%,.0f", budget.amount) + " đ."
-                );
-            }
-        }
-    }
-
+    /** Sửa transaction: cập nhật Room + push Firestore */
     public void update(TransactionEntity transaction) {
         AppDatabase.executor.execute(() -> appDao.updateTransaction(transaction));
+        syncHelper.pushTransaction(transaction);
     }
 
+    /** Xóa transaction: xóa Room + soft-delete Firestore */
     public void delete(TransactionEntity transaction) {
         AppDatabase.executor.execute(() -> appDao.deleteTransaction(transaction));
+        syncHelper.pushDeleteTransaction(transaction.transactionId);
     }
 
     public LiveData<List<TransactionEntity>> getAllTransactions() {
         String userId = getUserId();
         if (userId == null) return new MutableLiveData<>();
         return appDao.getAllTransactions(userId);
+    }
+
+    // ── Budget check (không đổi) ──────────────────────────────────
+
+    private void checkBudgetExceeded(TransactionEntity transaction) {
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        BudgetEntity budget = appDao.getActiveBudget(transaction.userId, transaction.categoryId, today);
+
+        if (budget != null) {
+            double spent = appDao.getSpentByCategory(transaction.userId, budget.categoryId, budget.startDate, budget.endDate);
+            if (spent > budget.amount) {
+                NotificationHelper.showNotification(
+                        application,
+                        "Cảnh báo vượt ngân sách!",
+                        "Bạn đã chi tiêu " + String.format(Locale.getDefault(), "%,.0f", spent) +
+                                " đ cho mục " + (budget.categoryId == null ? "Tổng thể" : budget.categoryId) +
+                                ", vượt mức ngân sách " + String.format(Locale.getDefault(), "%,.0f", budget.amount) + " đ."
+                );
+            }
+        }
     }
 }
