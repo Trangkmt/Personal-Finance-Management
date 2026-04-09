@@ -1,6 +1,9 @@
 package com.example.expensemanagement.Activitiy;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
@@ -19,6 +22,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -40,6 +45,14 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        // Bật offline persistence — phải gọi trước khi Firestore được dùng lần đầu
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true)
+                .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                .build();
+        firestore.setFirestoreSettings(settings);
+
         mAuth   = FirebaseAuth.getInstance();
         localDb = AppDatabase.getInstance(this);
 
@@ -50,7 +63,23 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (mAuth.getCurrentUser() != null) navigateToMain();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            if (isNetworkAvailable()) {
+                // Có mạng → pull Firestore rồi mới vào app
+                setLoading(true);
+                FirestoreSyncHelper syncHelper = new FirestoreSyncHelper(localDb.appDao());
+                syncHelper.pullAllForUser(currentUser.getUid(), () ->
+                        runOnUiThread(() -> {
+                            setLoading(false);
+                            navigateToMain();
+                        })
+                );
+            } else {
+                // Không có mạng → vào thẳng app, dùng data local
+                navigateToMain();
+            }
+        }
     }
 
     private void initViews() {
@@ -87,12 +116,10 @@ public class LoginActivity extends AppCompatActivity {
                             String uid = firebaseUser.getUid();
                             String now = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(new Date());
 
-                            // Cập nhật last_login local
                             AppDatabase.executor.execute(() ->
                                     localDb.appDao().updateLastLogin(uid, now)
                             );
 
-                            // ── PULL từ Firestore về Room ──────────────────────────
                             FirestoreSyncHelper syncHelper = new FirestoreSyncHelper(localDb.appDao());
                             syncHelper.pullAllForUser(uid, () ->
                                     runOnUiThread(() -> {
@@ -101,7 +128,6 @@ public class LoginActivity extends AppCompatActivity {
                                         navigateToMain();
                                     })
                             );
-                            // ────────────────────────────────────────────────────────
                         } else {
                             setLoading(false);
                             navigateToMain();
@@ -114,6 +140,18 @@ public class LoginActivity extends AppCompatActivity {
                         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
                     }
                 });
+    }
+
+    /** Kiểm tra có kết nối mạng không */
+    private boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        NetworkCapabilities caps = cm.getNetworkCapabilities(cm.getActiveNetwork());
+        return caps != null && (
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        );
     }
 
     private boolean validateInput(String email, String password) {
