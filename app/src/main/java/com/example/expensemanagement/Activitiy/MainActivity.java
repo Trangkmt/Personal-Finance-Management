@@ -23,7 +23,7 @@ import com.example.expensemanagement.fragment.BudgetFragment;
 import com.example.expensemanagement.fragment.HomeFragment;
 import com.example.expensemanagement.fragment.PlaceholderFragment;
 import com.example.expensemanagement.fragment.TransactionFragment;
-import com.example.expensemanagement.fragment.WalletFragment;
+import com.example.expensemanagement.fragment.StockFragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemanagement.NetworkMonitor;
 import com.example.expensemanagement.TransactionViewModel;
@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
         if      (itemId == R.id.nav_report)     fragment = HomeFragment.newInstance();
         else if (itemId == R.id.nav_transaction) fragment = TransactionFragment.newInstance();
         else if (itemId == R.id.nav_add)         fragment = BudgetFragment.newInstance();
-        else if (itemId == R.id.nav_wallet)      fragment = WalletFragment.newInstance();
+        else if (itemId == R.id.nav_stock)       fragment = StockFragment.newInstance();
         else if (itemId == R.id.nav_more)        fragment = AccountFragment.newInstance();
         else fragment = PlaceholderFragment.newInstance("Khác", "Tính năng đang được phát triển");
         getSupportFragmentManager().beginTransaction().replace(R.id.fragmentContainer, fragment).commit();

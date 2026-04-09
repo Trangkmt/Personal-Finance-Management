@@ -6,7 +6,6 @@ import com.example.expensemanagement.model.BudgetEntity;
 import com.example.expensemanagement.model.CategoryEntity;
 import com.example.expensemanagement.model.TransactionEntity;
 import com.example.expensemanagement.model.UserSettingsEntity;
-import com.example.expensemanagement.model.WalletEntity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
@@ -22,7 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Helper đồng bộ 2 chiều Room ↔ Firestore cho toàn bộ data của user:
  *   - transactions
- *   - wallets
  *   - budgets
  *   - categories (chỉ category tự tạo của user, không sync system category)
  *   - user_settings
@@ -36,7 +34,6 @@ public class FirestoreSyncHelper {
 
     // Tên collections trên Firestore
     private static final String COL_TRANSACTIONS   = "transactions";
-    private static final String COL_WALLETS        = "wallets";
     private static final String COL_BUDGETS        = "budgets";
     private static final String COL_CATEGORIES     = "categories";
     private static final String COL_USER_SETTINGS  = "user_settings";
@@ -75,28 +72,6 @@ public class FirestoreSyncHelper {
         softDelete(COL_TRANSACTIONS, transactionId);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    // PUSH — Wallet
-    // ══════════════════════════════════════════════════════════════════
-
-    public void pushWallet(WalletEntity w) {
-        Map<String, Object> doc = new HashMap<>();
-        doc.put("wallet_id", w.getId());
-        doc.put("user_id",   w.getUserId());
-        doc.put("name",      w.getName());
-        doc.put("type",      w.getType());
-        doc.put("balance",   w.getBalance());
-        doc.put("icon",      w.getIcon());
-        doc.put("deleted",   false);
-
-        db.collection(COL_WALLETS).document(w.getId())
-                .set(doc, SetOptions.merge())
-                .addOnFailureListener(e -> Log.e(TAG, "pushWallet FAIL: " + w.getId(), e));
-    }
-
-    public void pushDeleteWallet(String walletId) {
-        softDelete(COL_WALLETS, walletId);
-    }
 
     // ══════════════════════════════════════════════════════════════════
     // PUSH — Budget
@@ -189,10 +164,9 @@ public class FirestoreSyncHelper {
      */
     public void pullAllForUser(String userId, OnSyncDoneListener listener) {
         // Dùng AtomicInteger đếm số collection đã xong (5 tổng cộng)
-        AtomicInteger remaining = new AtomicInteger(5);
+        AtomicInteger remaining = new AtomicInteger(4);
 
         pullTransactions(userId, remaining, listener);
-        pullWallets(userId, remaining, listener);
         pullBudgets(userId, remaining, listener);
         pullCategories(userId, remaining, listener);
         pullUserSettings(userId, remaining, listener);
@@ -224,36 +198,6 @@ public class FirestoreSyncHelper {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Pull transactions FAIL", e);
-                    checkDone(remaining, listener);
-                });
-    }
-
-    // ── Pull Wallets ─────────────────────────────────────────────────
-
-    private void pullWallets(String userId, AtomicInteger remaining, OnSyncDoneListener listener) {
-        db.collection(COL_WALLETS)
-                .whereEqualTo("user_id", userId)
-                .get()
-                .addOnSuccessListener(snap -> {
-                    AppDatabase.executor.execute(() -> {
-                        for (DocumentSnapshot doc : snap.getDocuments()) {
-                            if (isDeleted(doc)) {
-                                String id = doc.getString("wallet_id");
-                                if (id != null) {
-                                    WalletEntity local = dao.getWalletById(id);
-                                    if (local != null) dao.deleteWallet(local);
-                                }
-                                continue;
-                            }
-                            WalletEntity w = parseWallet(doc);
-                            if (w != null) dao.insertWallet(w);
-                        }
-                        Log.d(TAG, "Pull wallets done: " + snap.size());
-                        checkDone(remaining, listener);
-                    });
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Pull wallets FAIL", e);
                     checkDone(remaining, listener);
                 });
     }
@@ -353,19 +297,6 @@ public class FirestoreSyncHelper {
                     || type == null || date == null || created == null || updated == null) return null;
             return new TransactionEntity(id, userId, catId, amount, type, note, date, created, updated);
         } catch (Exception e) { Log.e(TAG, "parseTransaction error", e); return null; }
-    }
-
-    private WalletEntity parseWallet(DocumentSnapshot doc) {
-        try {
-            String id     = doc.getString("wallet_id");
-            String userId = doc.getString("user_id");
-            String name   = doc.getString("name");
-            String type   = doc.getString("type");
-            Double balance = doc.getDouble("balance");
-            String icon   = doc.getString("icon");
-            if (id == null || userId == null || name == null || type == null || balance == null) return null;
-            return new WalletEntity(id, userId, name, type, balance, icon);
-        } catch (Exception e) { Log.e(TAG, "parseWallet error", e); return null; }
     }
 
     private BudgetEntity parseBudget(DocumentSnapshot doc) {

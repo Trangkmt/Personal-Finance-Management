@@ -1,0 +1,140 @@
+[
+  {
+    "symbol":"VNINDEX",
+    "name":"VN-Index",
+    "fullName":"Sàn HOSE Việt Nam",
+    "basePrice":1285.47,
+    "currency":"VND"
+  },
+  {
+    "symbol":"VNM",
+    "name":"VNM",
+    "fullName":"Vinamilk",
+    "basePrice":72400,
+    "currency":"VND"
+  },
+  {
+    "symbol":"VIC",
+    "name":"VIC",
+    "fullName":"Vingroup",
+    "basePrice":38500,
+    "currency":"VND"
+  },
+  {
+    "symbol":"VHM",
+    "name":"VHM",
+    "fullName":"Vinhomes",
+    "basePrice":29800,
+    "currency":"VND"},
+  {
+    "symbol":"HPG",
+    "name":"HPG",
+    "fullName":"Tập đoàn Hoà Phát",
+    "basePrice":24650,
+    "currency":"VND"
+  },
+  {
+    "symbol":"FPT",
+    "name":"FPT",
+    "fullName":"Công ty CP FPT",
+    "basePrice":138200,
+    "currency":"VND"
+  },
+  {
+    "symbol":"MBB",
+    "name":"MBB",
+    "fullName":"Ngân hàng Quân Đội",
+    "basePrice":21350,
+    "currency":"VND"
+  },
+  {
+    "symbol":"TCB",
+    "name":"TCB",
+    "fullName":"Techcombank",
+    "basePrice":22700,
+    "currency":"VND"
+  },
+  {
+    "symbol":"VCB",
+    "name":"VCB",
+    "fullName":"Vietcombank",
+    "basePrice":71500,
+    "currency":"VND"
+  },
+  {
+    "symbol":"BID",
+    "name":"BID",
+    "fullName":"BIDV",
+    "basePrice":44200,
+    "currency":"VND"
+  },
+  {
+    "symbol":"AAPL",
+    "name":"AAPL",
+    "fullName":"Apple Inc.",
+    "basePrice":259.82,
+    "currency":"USD"
+  },
+  {
+    "symbol":"TSLA",
+    "name":"TSLA",
+    "fullName":"Tesla, Inc.",
+    "basePrice":241.37,
+    "currency":"USD"
+  },
+  {
+    "symbol":"GOOGL",
+    "name":"GOOGL",
+    "fullName":"Alphabet Inc.",
+    "basePrice":163.45,
+    "currency":"USD"
+  },
+  {
+    "symbol":"MSFT",
+    "name":"MSFT",
+    "fullName":"Microsoft Corp.",
+    "basePrice":382.15,
+    "currency":"USD"
+  },
+  {
+    "symbol":"AMZN",
+    "name":"AMZN",
+    "fullName":"Amazon.com Inc.",
+    "basePrice":196.73,
+    "currency":"USD"
+  },
+  {
+    "symbol":"META",
+    "name":"META",
+    "fullName":"Meta Platforms",
+    "basePrice":512.84,
+    "currency":"USD"},
+  {
+    "symbol":"NVDA",
+    "name":"NVDA",
+    "fullName":"NVIDIA Corp.",
+    "basePrice":875.40,
+    "currency":"USD"
+  },
+  {
+    "symbol":"BRK-B",
+    "name":"BRK-B",
+    "fullName":"Berkshire Hathaway",
+    "basePrice":486.82,
+    "currency":"USD"
+  },
+  {
+    "symbol":"NKE",
+    "name":"NKE",
+    "fullName":"NIKE, Inc.",
+    "basePrice":43.85,
+    "currency":"USD"
+  },
+  {
+    "symbol":"SBUX",
+    "name":"SBUX",
+    "fullName":"Starbucks Corp.",
+    "basePrice":96.89,
+    "currency":"USD"
+  }
+]
