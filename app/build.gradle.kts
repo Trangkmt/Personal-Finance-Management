@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.example.expensemanagement"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -33,10 +33,15 @@ android {
 }
 
 dependencies {
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("com.google.android.material:material:1.13.0")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation(libs.recyclerview)
+    
+    // ML Kit Text Recognition
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
+    
+    // Professional Image Cropper
+    implementation("com.github.CanHub:Android-Image-Cropper:4.5.0")
 
     // Room
     val room_version = "2.6.1"
@@ -48,10 +53,11 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
 
-    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation(libs.appcompat)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    
     
     // Alpha Vantage Java Library
     implementation("com.github.crazzyghost:alphavantage-java:1.8.0")

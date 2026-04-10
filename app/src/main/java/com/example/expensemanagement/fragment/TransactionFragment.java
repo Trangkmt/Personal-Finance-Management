@@ -1,260 +1,531 @@
 package com.example.expensemanagement.fragment;
 
-import android.app.AlertDialog;
+import android.app.DatePickerDialog;
+import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.ImageDecoder;
+import android.graphics.Paint;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.util.Pair;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.expensemanagement.R;
-import com.example.expensemanagement.Adapters.TransactionAdapter;
 import com.example.expensemanagement.TransactionViewModel;
 import com.example.expensemanagement.model.TransactionEntity;
-import com.example.expensemanagement.model.TransactionItem;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButtonToggleGroup;
-import com.google.android.material.datepicker.MaterialDatePicker;
-import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
-import java.text.DecimalFormat;
+import java.io.File;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class TransactionFragment extends Fragment implements TransactionAdapter.OnTransactionActionListener {
+public class TransactionFragment extends Fragment {
 
-    private RecyclerView recyclerView;
-    private TransactionAdapter adapter;
-    private List<TransactionItem> displayList = new ArrayList<>();
+    // --- UI Elements ---
+    private TabLayout tabLayoutEntry;
+    private MaterialButtonToggleGroup toggleType;
+    private Button btnSaveTransaction, btnViewHistory, btnPickImage;
+    private EditText etAmount, etNote, etRepeat, etCustomCategory;
+    private TextInputLayout tilCustomCategory;
+    private View btnDate;
+    private View btnCatFood, btnCatShopping, btnCatOther;
+    private TextView tvDateDisplay;
+    private ImageButton btnBack;
+    private LinearLayout layoutManualInput, layoutImageInput;
+    private ImageView ivPreview;
+    private ProgressBar ocrProgressBar;
+
+    // --- Data & Logic ---
     private TransactionViewModel viewModel;
-    private TextView tvBalanceValue, tvEmpty, tvDateRangeDisplay;
-    private Button btnAddTransaction;
-    private ImageButton btnCalendarPicker;
-    private MaterialButtonToggleGroup toggleFilter;
-    private final DecimalFormat decimalFormat = new DecimalFormat("#,###");
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private String selectedCategoryId = "Ăn uống";
+    private Calendar selectedDate = Calendar.getInstance();
+    private Bitmap currentBitmapToProcess;
+    private Uri cameraImageUri;
 
+    private final SimpleDateFormat displayDateFormat =
+            new SimpleDateFormat("'Hôm nay, 'dd/MM/yyyy", Locale.getDefault());
+    private final SimpleDateFormat dbDateFormat =
+            new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+
+    // --- Activity Result Launchers ---
+    private final ActivityResultLauncher<Uri> takePictureLauncher =
+            registerForActivityResult(new ActivityResultContracts.TakePicture(), isSuccess -> {
+                if (isSuccess && cameraImageUri != null) {
+                    handleResultUri(cameraImageUri);
+                } else {
+                    Toast.makeText(getContext(), "Không chụp được ảnh", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+    private final ActivityResultLauncher<String> pickImageLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) {
+                    handleResultUri(uri);
+                } else {
+                    Toast.makeText(getContext(), "Bạn chưa chọn ảnh", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+    // --- Lifecycle Methods ---
     public static TransactionFragment newInstance() {
         return new TransactionFragment();
     }
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_transaction, container, false);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_transaction, container, false);
+    }
 
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         initViews(view);
-        setupRecyclerView();
-        setupViewModel();
         setupListeners();
-
-        return view;
-    }
-
-    private void initViews(View view) {
-        recyclerView = view.findViewById(R.id.recyclerTransactions);
-        tvBalanceValue = view.findViewById(R.id.tvBalanceValue);
-        tvEmpty = view.findViewById(R.id.tvEmptyState);
-        tvDateRangeDisplay = view.findViewById(R.id.tvDateRangeDisplay);
-        btnAddTransaction = view.findViewById(R.id.fabAddTransaction);
-        btnCalendarPicker = view.findViewById(R.id.btnCalendarPicker);
-        toggleFilter = view.findViewById(R.id.toggleFilter);
-    }
-
-    private void setupRecyclerView() {
-        adapter = new TransactionAdapter(displayList, this);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setAdapter(adapter);
-    }
-
-    private void setupViewModel() {
         viewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
-        
-        viewModel.getFilteredTransactions().observe(getViewLifecycleOwner(), entities -> {
-            displayList.clear();
-            long balance = 0;
-            if (entities != null) {
-                for (TransactionEntity entity : entities) {
-                    boolean isIncome = "income".equalsIgnoreCase(entity.type);
-                    displayList.add(new TransactionItem(entity.transactionId, entity.note, entity.categoryId, entity.transactionDate, (long)entity.amount, isIncome));
-                    balance += isIncome ? entity.amount : -entity.amount;
-                }
-            }
-            adapter.notifyDataSetChanged();
-            tvBalanceValue.setText(decimalFormat.format(balance) + " đ");
-            toggleEmptyState();
-        });
+    }
+
+    // --- Initialization ---
+    private void initViews(View view) {
+        tabLayoutEntry = view.findViewById(R.id.tabLayoutEntry);
+        layoutManualInput = view.findViewById(R.id.layoutManualInput);
+        layoutImageInput = view.findViewById(R.id.layoutImageInput);
+        toggleType = view.findViewById(R.id.toggleType);
+        etAmount = view.findViewById(R.id.etAmount);
+        etNote = view.findViewById(R.id.etNote);
+        etRepeat = view.findViewById(R.id.etRepeat);
+        etCustomCategory = view.findViewById(R.id.etCustomCategory);
+        tilCustomCategory = view.findViewById(R.id.tilCustomCategory);
+        btnDate = view.findViewById(R.id.btnDate);
+        tvDateDisplay = view.findViewById(R.id.tvDateDisplay);
+        btnSaveTransaction = view.findViewById(R.id.btnSaveTransaction);
+        btnViewHistory = view.findViewById(R.id.btnViewHistory);
+        btnBack = view.findViewById(R.id.btnBack);
+        btnCatFood = view.findViewById(R.id.btnCatFood);
+        btnCatShopping = view.findViewById(R.id.btnCatShopping);
+        btnCatOther = view.findViewById(R.id.btnCatOther);
+        btnPickImage = view.findViewById(R.id.btnPickImage);
+        ivPreview = view.findViewById(R.id.ivPreview);
+        ocrProgressBar = view.findViewById(R.id.ocrProgressBar);
+
+        if (tvDateDisplay != null) {
+            tvDateDisplay.setText(displayDateFormat.format(selectedDate.getTime()));
+        }
+
+        if (toggleType != null) {
+            toggleType.check(R.id.btnTypeExpense);
+        }
     }
 
     private void setupListeners() {
-        btnAddTransaction.setOnClickListener(v -> showTransactionDialog(false, -1));
-        
-        btnCalendarPicker.setOnClickListener(v -> showDateRangePicker());
-
-        toggleFilter.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-            if (isChecked) {
-                if (checkedId == R.id.btnFilterAll) {
-                    viewModel.setFilter(TransactionViewModel.FilterType.ALL);
-                    tvDateRangeDisplay.setText("Đang hiển thị: Tất cả");
-                } else if (checkedId == R.id.btnFilterDay) {
-                    viewModel.setFilter(TransactionViewModel.FilterType.DAY);
-                    tvDateRangeDisplay.setText("Đang hiển thị: Hôm nay");
-                } else if (checkedId == R.id.btnFilterWeek) {
-                    viewModel.setFilter(TransactionViewModel.FilterType.WEEK);
-                    tvDateRangeDisplay.setText("Đang hiển thị: Tuần này");
-                } else if (checkedId == R.id.btnFilterMonth) {
-                    viewModel.setFilter(TransactionViewModel.FilterType.MONTH);
-                    tvDateRangeDisplay.setText("Đang hiển thị: Tháng này");
-                }
-            }
-        });
-    }
-
-    private void showDateRangePicker() {
-        MaterialDatePicker<Pair<Long, Long>> picker = MaterialDatePicker.Builder.dateRangePicker()
-                .setTitleText("Chọn khoảng thời gian")
-                .setTheme(com.google.android.material.R.style.ThemeOverlay_MaterialComponents_MaterialCalendar)
-                .build();
-
-        picker.show(getChildFragmentManager(), "DATE_RANGE_PICKER");
-
-        picker.addOnPositiveButtonClickListener(selection -> {
-            if (selection != null && selection.first != null && selection.second != null) {
-                // Điều chỉnh múi giờ để lấy đúng ngày
-                TimeZone timeZone = TimeZone.getDefault();
-                long offset = timeZone.getOffset(selection.first);
-                
-                String start = dateFormat.format(new Date(selection.first - offset));
-                String end = dateFormat.format(new Date(selection.second - offset));
-                
-                viewModel.setCustomFilter(start, end);
-                tvDateRangeDisplay.setText("Từ: " + start + " đến: " + end);
-                toggleFilter.clearChecked(); // Bỏ chọn các nút Ngày/Tuần/Tháng nhanh
-            }
-        });
-    }
-
-    private void showTransactionDialog(boolean isEdit, int position) {
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_transaction, null);
-        AlertDialog dialog = new AlertDialog.Builder(getContext())
-                .setView(dialogView)
-                .create();
-
-        TextView tvDialogTitle = dialogView.findViewById(R.id.tvDialogTitle);
-        RadioGroup rgType = dialogView.findViewById(R.id.rgType);
-        RadioButton rbExpense = dialogView.findViewById(R.id.rbExpense);
-        RadioButton rbIncome = dialogView.findViewById(R.id.rbIncome);
-        TextInputEditText etTitle = dialogView.findViewById(R.id.etTitle);
-        TextInputEditText etCategory = dialogView.findViewById(R.id.etCategory);
-        TextInputEditText etDate = dialogView.findViewById(R.id.etDate);
-        TextInputEditText etAmount = dialogView.findViewById(R.id.etAmount);
-        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
-        Button btnSave = dialogView.findViewById(R.id.btnSave);
-
-        if (isEdit) {
-            tvDialogTitle.setText("Sửa giao dịch");
-            TransactionItem item = displayList.get(position);
-            etTitle.setText(item.getTitle());
-            etCategory.setText(item.getCategory());
-            etDate.setText(item.getDate());
-            etAmount.setText(String.valueOf(item.getAmount()));
-            if (item.isIncome()) rbIncome.setChecked(true); else rbExpense.setChecked(true);
-        } else {
-            rbExpense.setChecked(true);
-            etDate.setText(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()));
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
         }
 
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-
-        btnSave.setOnClickListener(v -> {
-            String title = valueOf(etTitle);
-            String category = valueOf(etCategory);
-            String date = valueOf(etDate);
-            String amountStr = valueOf(etAmount);
-            String type = rbIncome.isChecked() ? "income" : "expense";
-
-            if (title.isEmpty() || amountStr.isEmpty()) {
-                Toast.makeText(getContext(), "Vui lòng nhập đủ thông tin", Toast.LENGTH_SHORT).show();
-                return;
+        tabLayoutEntry.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                boolean isManual = (tab.getPosition() == 0);
+                layoutManualInput.setVisibility(isManual ? View.VISIBLE : View.GONE);
+                layoutImageInput.setVisibility(isManual ? View.GONE : View.VISIBLE);
             }
 
-            try {
-                double amount = Double.parseDouble(amountStr);
-                String userId = FirebaseAuth.getInstance().getUid();
-                if (userId == null) userId = "default_user";
-                String now = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(new Date());
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
 
-                if (isEdit) {
-                    TransactionItem item = displayList.get(position);
-                    TransactionEntity updateEntity = new TransactionEntity(
-                            item.getId(), userId, category, amount, type, title, date, now, now);
-                    viewModel.update(updateEntity);
-                    Toast.makeText(getContext(), "Đã cập nhật giao dịch", Toast.LENGTH_SHORT).show();
-                } else {
-                    TransactionEntity newEntity = new TransactionEntity(
-                            UUID.randomUUID().toString(), userId, category, amount, type, title, date, now, now);
-                    viewModel.insert(newEntity);
-                    Toast.makeText(getContext(), "Đã thêm giao dịch", Toast.LENGTH_SHORT).show();
-                }
-                dialog.dismiss();
-            } catch (Exception e) {
-                Toast.makeText(getContext(), "Lỗi nhập liệu số tiền", Toast.LENGTH_SHORT).show();
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
+
+        btnPickImage.setOnClickListener(v -> {
+            if (currentBitmapToProcess == null) {
+                showSourcePicker();
+            } else {
+                processImageOCR(currentBitmapToProcess);
             }
         });
 
+        ivPreview.setOnClickListener(v -> {
+            if (currentBitmapToProcess != null) {
+                showSourcePicker();
+            }
+        });
+
+        btnDate.setOnClickListener(v -> showDatePicker());
+        btnCatFood.setOnClickListener(v -> selectCategory("Ăn uống", false));
+        btnCatShopping.setOnClickListener(v -> selectCategory("Mua sắm", false));
+        btnCatOther.setOnClickListener(v -> selectCategory("Khác", true));
+
+        toggleType.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (isChecked) {
+                btnSaveTransaction.setText(
+                        checkedId == R.id.btnTypeExpense ? "Thêm giao dịch chi" : "Thêm giao dịch thu"
+                );
+                updateButtonState();
+            }
+        });
+
+        etAmount.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                updateButtonState();
+            }
+        });
+
+        btnSaveTransaction.setOnClickListener(v -> saveTransaction());
+
+        btnViewHistory.setOnClickListener(v -> {
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragmentContainer, TransactionHistoryFragment.newInstance())
+                    .addToBackStack(null)
+                    .commit();
+        });
+    }
+
+    // --- Transaction Business Logic ---
+    private void selectCategory(String categoryName, boolean isOther) {
+        selectedCategoryId = categoryName;
+        if (tilCustomCategory != null) {
+            tilCustomCategory.setVisibility(isOther ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void updateButtonState() {
+        if (etAmount == null || btnSaveTransaction == null) return;
+
+        String amountStr = etAmount.getText().toString().trim();
+        boolean hasAmount = !amountStr.isEmpty() && !amountStr.equals("0");
+
+        btnSaveTransaction.setEnabled(hasAmount);
+        btnSaveTransaction.setBackgroundTintList(
+                requireContext().getColorStateList(hasAmount ? R.color.accent_pink : R.color.divider)
+        );
+        btnSaveTransaction.setTextColor(
+                requireContext().getColor(hasAmount ? R.color.white : R.color.text_hint)
+        );
+    }
+
+    private void showDatePicker() {
+        new DatePickerDialog(requireContext(), (view, year, month, dayOfMonth) -> {
+            selectedDate.set(Calendar.YEAR, year);
+            selectedDate.set(Calendar.MONTH, month);
+            selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+            updateDateDisplay();
+        }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH),
+                selectedDate.get(Calendar.DAY_OF_MONTH)).show();
+    }
+
+    private void updateDateDisplay() {
+        if (tvDateDisplay != null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("EEEE, dd/MM/yyyy", Locale.getDefault());
+            tvDateDisplay.setText(sdf.format(selectedDate.getTime()));
+        }
+    }
+
+    private void saveTransaction() {
+        if (etAmount == null) return;
+
+        String amountStr = etAmount.getText().toString().trim();
+        if (amountStr.isEmpty()) return;
+
+        double amount = Double.parseDouble(amountStr);
+        String note = etNote != null ? etNote.getText().toString().trim() : "";
+        String repeat = etRepeat != null ? etRepeat.getText().toString().trim() : "";
+        String type = (toggleType != null && toggleType.getCheckedButtonId() == R.id.btnTypeIncome)
+                ? "income" : "expense";
+        String date = dbDateFormat.format(selectedDate.getTime());
+
+        String category = selectedCategoryId;
+        if (selectedCategoryId.equals("Khác") && etCustomCategory != null) {
+            category = etCustomCategory.getText().toString().trim();
+            if (category.isEmpty()) category = "Khác";
+        }
+
+        String finalNote = note;
+        if (!repeat.isEmpty()) {
+            finalNote += " [Lặp: " + repeat + "]";
+        }
+
+        String userId = FirebaseAuth.getInstance().getUid();
+        if (userId == null) return;
+
+        TransactionEntity entity = new TransactionEntity(
+                UUID.randomUUID().toString(),
+                userId,
+                category,
+                amount,
+                type,
+                finalNote,
+                date,
+                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(new Date()),
+                ""
+        );
+
+        viewModel.insert(entity);
+        Toast.makeText(getContext(), "Đã lưu giao dịch thành công!", Toast.LENGTH_SHORT).show();
+        clearInputs();
+    }
+
+    private void clearInputs() {
+        if (etAmount != null) etAmount.setText("");
+        if (etNote != null) etNote.setText("");
+        if (etRepeat != null) etRepeat.setText("");
+        if (etCustomCategory != null) etCustomCategory.setText("");
+        if (tilCustomCategory != null) tilCustomCategory.setVisibility(View.GONE);
+    }
+
+    // --- Image Processing & OCR Logic ---
+    private void showSourcePicker() {
+        BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
+        View view = getLayoutInflater().inflate(R.layout.layout_image_source_picker, null);
+
+        view.findViewById(R.id.btnSourceCamera).setOnClickListener(v -> {
+            openCamera();
+            dialog.dismiss();
+        });
+
+        view.findViewById(R.id.btnSourceGallery).setOnClickListener(v -> {
+            openGallery();
+            dialog.dismiss();
+        });
+
+        dialog.setContentView(view);
         dialog.show();
     }
 
-    private String valueOf(TextInputEditText editText) {
-        return editText.getText() == null ? "" : editText.getText().toString().trim();
-    }
+    private void openCamera() {
+        try {
+            String fileName = "receipt_" + System.currentTimeMillis() + ".jpg";
+            File photoFile = new File(requireContext().getCacheDir(), fileName);
 
-    private void toggleEmptyState() {
-        if (displayList.isEmpty()) {
-            tvEmpty.setVisibility(View.VISIBLE);
-            recyclerView.setVisibility(View.GONE);
-        } else {
-            tvEmpty.setVisibility(View.GONE);
-            recyclerView.setVisibility(View.VISIBLE);
+            cameraImageUri = FileProvider.getUriForFile(
+                    requireContext(),
+                    requireContext().getPackageName() + ".provider",
+                    photoFile
+            );
+
+            takePictureLauncher.launch(cameraImageUri);
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Không mở được camera: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    @Override
-    public void onEdit(int position) {
-        showTransactionDialog(true, position);
+    private void openGallery() {
+        pickImageLauncher.launch("image/*");
     }
 
-    @Override
-    public void onDelete(int position) {
-        if (position < 0 || position >= displayList.size()) return;
-        TransactionItem item = displayList.get(position);
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Xóa giao dịch")
-                .setMessage("Bạn có chắc muốn xóa giao dịch này không?")
-                .setPositiveButton("Xóa", (dialog, which) -> {
-                    TransactionEntity proxy = new TransactionEntity(item.getId(), "", "", 0, "", "", "", "", "");
-                    viewModel.delete(proxy);
-                    Toast.makeText(getContext(), "Đã xóa giao dịch", Toast.LENGTH_SHORT).show();
+    private void handleResultUri(Uri uri) {
+        try {
+            Bitmap bitmap;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                ImageDecoder.Source source =
+                        ImageDecoder.createSource(requireContext().getContentResolver(), uri);
+                bitmap = ImageDecoder.decodeBitmap(source, (decoder, info, s) -> {
+                    decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
+                });
+            } else {
+                bitmap = MediaStore.Images.Media.getBitmap(
+                        requireContext().getContentResolver(),
+                        uri
+                );
+            }
+
+            currentBitmapToProcess = applyGrayscaleFilter(bitmap);
+            ivPreview.setImageBitmap(currentBitmapToProcess);
+
+            btnPickImage.setText("BẮT ĐẦU NHẬN DIỆN");
+            btnPickImage.setBackgroundTintList(
+                    ColorStateList.valueOf(
+                            ContextCompat.getColor(requireContext(), R.color.accent_pink)
+                    )
+            );
+            btnPickImage.setTextColor(Color.WHITE);
+
+            Toast.makeText(getContext(),
+                    "Đã tải ảnh thành công! Nhấn nút để bắt đầu quét.",
+                    Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private Bitmap applyGrayscaleFilter(Bitmap src) {
+        Bitmap.Config config = src.getConfig();
+        if (config == null || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && config == Bitmap.Config.HARDWARE)) {
+            config = Bitmap.Config.ARGB_8888;
+        }
+        
+        Bitmap dest = Bitmap.createBitmap(src.getWidth(), src.getHeight(), config);
+        Canvas canvas = new Canvas(dest);
+        Paint paint = new Paint();
+        ColorMatrix cm = new ColorMatrix();
+        cm.setSaturation(0);
+        paint.setColorFilter(new ColorMatrixColorFilter(cm));
+        canvas.drawBitmap(src, 0, 0, paint);
+        return dest;
+    }
+
+    private void processImageOCR(Bitmap bitmap) {
+        if (ocrProgressBar != null) ocrProgressBar.setVisibility(View.VISIBLE);
+        btnPickImage.setEnabled(false);
+
+        InputImage image = InputImage.fromBitmap(bitmap, 0);
+        TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
+        recognizer.process(image)
+                .addOnSuccessListener(visionText -> {
+                    if (ocrProgressBar != null) ocrProgressBar.setVisibility(View.GONE);
+
+                    String resultText = visionText.getText();
+                    if (resultText == null || resultText.trim().isEmpty()) {
+                        Toast.makeText(getContext(),
+                                "Không tìm thấy chữ. Hãy thử chọn ảnh khác.",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        smartParseTransaction(resultText);
+                        resetImagePicker();
+                    }
                 })
-                .setNegativeButton("Hủy", null)
-                .show();
+                .addOnFailureListener(e -> {
+                    if (ocrProgressBar != null) ocrProgressBar.setVisibility(View.GONE);
+                    Toast.makeText(getContext(),
+                            "Lỗi nhận diện: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                })
+                .addOnCompleteListener(task -> {
+                    recognizer.close();
+                    btnPickImage.setEnabled(true);
+                });
+    }
+
+    private void resetImagePicker() {
+        currentBitmapToProcess = null;
+        if (ivPreview != null) {
+            ivPreview.setImageDrawable(null);
+        }
+        btnPickImage.setText("Chọn ảnh hóa đơn");
+        btnPickImage.setBackgroundTintList(
+                ContextCompat.getColorStateList(requireContext(), R.color.divider)
+        );
+        btnPickImage.setTextColor(
+                ContextCompat.getColor(requireContext(), R.color.text_primary)
+        );
+    }
+
+    private void smartParseTransaction(String rawText) {
+        // --- Parse Amount ---
+        Pattern amountKeywordPattern = Pattern.compile(
+                "(?i)(?:tổng cộng|thanh toán|số tiền|amount|total|sum)[:\\s]*([\\d.,]+)"
+        );
+        Matcher keywordMatcher = amountKeywordPattern.matcher(rawText);
+        String foundAmount = "";
+
+        if (keywordMatcher.find()) {
+            foundAmount = keywordMatcher.group(1).replaceAll("[.,]", "");
+        } else {
+            Pattern anyAmountPattern = Pattern.compile("(\\d{1,3}([\\.,]\\d{3})+)");
+            Matcher anyMatcher = anyAmountPattern.matcher(rawText);
+            long maxVal = 0;
+
+            while (anyMatcher.find()) {
+                try {
+                    long val = Long.parseLong(anyMatcher.group(1).replaceAll("[\\.,]", ""));
+                    if (val > maxVal) {
+                        maxVal = val;
+                        foundAmount = String.valueOf(val);
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        if (!foundAmount.isEmpty()) {
+            etAmount.setText(foundAmount);
+        }
+
+        // --- Parse Date ---
+        // Patterns: dd/MM/yyyy, dd-MM-yyyy, dd.MM.yyyy
+        Pattern datePattern = Pattern.compile("(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{4})");
+        Matcher dateMatcher = datePattern.matcher(rawText);
+        boolean dateFound = false;
+        
+        if (dateMatcher.find()) {
+            String d = dateMatcher.group(1);
+            String m = dateMatcher.group(2);
+            String y = dateMatcher.group(3);
+            
+            try {
+                int day = Integer.parseInt(d);
+                int month = Integer.parseInt(m) - 1; // Calendar month is 0-indexed
+                int year = Integer.parseInt(y);
+                
+                selectedDate.set(year, month, day);
+                updateDateDisplay();
+                dateFound = true;
+            } catch (Exception ignored) {}
+        }
+
+        // Feedback to user
+        if (!foundAmount.isEmpty() || dateFound) {
+            StringBuilder msg = new StringBuilder("Đã trích xuất: ");
+            if (!foundAmount.isEmpty()) msg.append("Số tiền ");
+            if (!foundAmount.isEmpty() && dateFound) msg.append("và ");
+            if (dateFound) msg.append("Ngày");
+            
+            Toast.makeText(getContext(), msg.toString(), Toast.LENGTH_LONG).show();
+            tabLayoutEntry.getTabAt(0).select();
+        } else {
+            Toast.makeText(getContext(),
+                    "Không tìm thấy thông tin phù hợp trên hóa đơn",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 }

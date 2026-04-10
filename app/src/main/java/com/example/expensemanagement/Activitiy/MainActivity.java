@@ -140,12 +140,22 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadFragment(int itemId) {
         Fragment fragment;
-        if      (itemId == R.id.nav_report)     fragment = HomeFragment.newInstance();
-        else if (itemId == R.id.nav_transaction) fragment = TransactionFragment.newInstance();
-        else if (itemId == R.id.nav_add)         fragment = BudgetFragment.newInstance();
-        else if (itemId == R.id.nav_stock)       fragment = StockFragment.newInstance();
-        else if (itemId == R.id.nav_more)        fragment = AccountFragment.newInstance();
-        else fragment = PlaceholderFragment.newInstance("Khác", "Tính năng đang được phát triển");
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragmentContainer, fragment).commit();
+
+        if (itemId == R.id.nav_report) {
+            fragment = HomeFragment.newInstance();
+        } else if (itemId == R.id.nav_transaction) {
+            fragment = TransactionFragment.newInstance();
+        } else if (itemId == R.id.nav_add) {
+            fragment = BudgetFragment.newInstance();
+        } else if (itemId == R.id.nav_more) {
+            fragment = AccountFragment.newInstance();
+        } else {
+            fragment = PlaceholderFragment.newInstance("Khác", "Tính năng đang được phát triển");
+        }
+
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragmentContainer, fragment)
+                .commit();
     }
 }

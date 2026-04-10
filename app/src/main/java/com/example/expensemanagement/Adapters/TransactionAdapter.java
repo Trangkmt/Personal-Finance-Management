@@ -62,9 +62,9 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         return items.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvTitle, tvCategory, tvDate, tvAmount;
-        ImageView ivEdit, ivDelete;
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        public TextView tvTitle, tvCategory, tvDate, tvAmount;
+        public ImageView ivEdit, ivDelete;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -73,7 +73,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             tvDate = itemView.findViewById(R.id.tvTransactionDate);
             tvAmount = itemView.findViewById(R.id.tvTransactionAmount);
             ivEdit = itemView.findViewById(R.id.ivEdit);
-            ivDelete = itemView.findViewById(R.id.ivDelete);
+            ivDelete = itemView.findViewById(R.id.ivDelete); // Sửa ID: ivDeleteBudget -> ivDelete
         }
     }
 }
