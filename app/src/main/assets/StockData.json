@@ -1,0 +1,162 @@
+[
+  {
+    "symbol": "VNM",
+    "fullName": "Vinamilk",
+    "price": 68500.0,
+    "change": -200.0,
+    "changePct": -0.29,
+    "currency": "VND"
+  },
+  {
+    "symbol": "FPT",
+    "fullName": "FPT Corporation",
+    "price": 135200.0,
+    "change": 2500.0,
+    "changePct": 1.88,
+    "currency": "VND"
+  },
+  {
+    "symbol": "VIC",
+    "fullName": "Vingroup JSC",
+    "price": 42150.0,
+    "change": 100.0,
+    "changePct": 0.24,
+    "currency": "VND"
+  },
+  {
+    "symbol": "HPG",
+    "fullName": "Hoa Phat Group",
+    "price": 28400.0,
+    "change": -500.0,
+    "changePct": -1.73,
+    "currency": "VND"
+  },
+  {
+    "symbol": "VCB",
+    "fullName": "Vietcombank",
+    "price": 92000.0,
+    "change": 1200.0,
+    "changePct": 1.32,
+    "currency": "VND"
+  },
+  {
+    "symbol": "SSI",
+    "fullName": "SSI Securities",
+    "price": 35600.0,
+    "change": 450.0,
+    "changePct": 1.28,
+    "currency": "VND"
+  },
+  {
+    "symbol": "MWG",
+    "fullName": "Mobile World",
+    "price": 65100.0,
+    "change": 800.0,
+    "changePct": 1.24,
+    "currency": "VND"
+  },
+  {
+    "symbol": "TCB",
+    "fullName": "Techcombank",
+    "price": 32800.0,
+    "change": -300.0,
+    "changePct": -0.91,
+    "currency": "VND"
+  },
+  {
+    "symbol": "MBB",
+    "fullName": "MB Bank",
+    "price": 24500.0,
+    "change": 200.0,
+    "changePct": 0.82,
+    "currency": "VND"
+  },
+  {
+    "symbol": "BID",
+    "fullName": "BIDV",
+    "price": 50200.0,
+    "change": -600.0,
+    "changePct": -1.18,
+    "currency": "VND"
+  },
+  {
+    "symbol": "AAPL",
+    "fullName": "Apple Inc.",
+    "price": 189.23,
+    "change": 2.15,
+    "changePct": 1.15,
+    "currency": "USD"
+  },
+  {
+    "symbol": "TSLA",
+    "fullName": "Tesla Inc.",
+    "price": 241.37,
+    "change": -5.20,
+    "changePct": -2.11,
+    "currency": "USD"
+  },
+  {
+    "symbol": "GOOGL",
+    "fullName": "Alphabet Inc.",
+    "price": 163.45,
+    "change": 1.02,
+    "changePct": 0.63,
+    "currency": "USD"
+  },
+  {
+    "symbol": "MSFT",
+    "fullName": "Microsoft Corporation",
+    "price": 382.15,
+    "change": 4.80,
+    "changePct": 1.27,
+    "currency": "USD"
+  },
+  {
+    "symbol": "AMZN",
+    "fullName": "Amazon.com Inc.",
+    "price": 196.73,
+    "change": -2.50,
+    "changePct": -1.25,
+    "currency": "USD"
+  },
+  {
+    "symbol": "META",
+    "fullName": "Meta Platforms",
+    "price": 512.84,
+    "change": 6.30,
+    "changePct": 1.24,
+    "currency": "USD"
+  },
+  {
+    "symbol": "NVDA",
+    "fullName": "NVIDIA Corporation",
+    "price": 875.40,
+    "change": 15.20,
+    "changePct": 1.77,
+    "currency": "USD"
+  },
+  {
+    "symbol": "NFLX",
+    "fullName": "Netflix Inc.",
+    "price": 628.55,
+    "change": -8.10,
+    "changePct": -1.27,
+    "currency": "USD"
+  },
+  {
+    "symbol": "NKE",
+    "fullName": "Nike Inc.",
+    "price": 43.85,
+    "change": 0.75,
+    "changePct": 1.74,
+    "currency": "USD"
+  },
+  {
+    "symbol": "SBUX",
+    "fullName": "Starbucks Corporation",
+    "price": 96.89,
+    "change": -1.10,
+    "changePct": -1.12,
+    "currency": "USD"
+  }
+]
