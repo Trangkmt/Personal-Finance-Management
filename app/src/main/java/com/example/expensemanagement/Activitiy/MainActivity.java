@@ -15,18 +15,17 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
+import com.example.expensemanagement.NetworkMonitor;
 import com.example.expensemanagement.NotificationReceiver;
 import com.example.expensemanagement.R;
+import com.example.expensemanagement.TransactionViewModel;
 import com.example.expensemanagement.fragment.AccountFragment;
 import com.example.expensemanagement.fragment.BudgetFragment;
 import com.example.expensemanagement.fragment.HomeFragment;
-import com.example.expensemanagement.fragment.PlaceholderFragment;
-import com.example.expensemanagement.fragment.TransactionFragment;
 import com.example.expensemanagement.fragment.StockFragment;
-import androidx.lifecycle.ViewModelProvider;
-import com.example.expensemanagement.NetworkMonitor;
-import com.example.expensemanagement.TransactionViewModel;
+import com.example.expensemanagement.fragment.TransactionFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -135,7 +134,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupBottomNav() {
-        bottomNav.setOnItemSelectedListener(item -> { loadFragment(item.getItemId()); return true; });
+        bottomNav.setOnItemSelectedListener(item -> { 
+            loadFragment(item.getItemId()); 
+            return true; 
+        });
     }
 
     private void loadFragment(int itemId) {
@@ -147,10 +149,10 @@ public class MainActivity extends AppCompatActivity {
             fragment = TransactionFragment.newInstance();
         } else if (itemId == R.id.nav_add) {
             fragment = BudgetFragment.newInstance();
-        } else if (itemId == R.id.nav_more) {
-            fragment = AccountFragment.newInstance();
+        } else if (itemId == R.id.nav_stock) {
+            fragment = StockFragment.newInstance();
         } else {
-            fragment = PlaceholderFragment.newInstance("Khác", "Tính năng đang được phát triển");
+            fragment = AccountFragment.newInstance();
         }
 
         getSupportFragmentManager()
