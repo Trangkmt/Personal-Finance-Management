@@ -23,6 +23,10 @@ import com.example.expensemanagement.fragment.BudgetFragment;
 import com.example.expensemanagement.fragment.HomeFragment;
 import com.example.expensemanagement.fragment.PlaceholderFragment;
 import com.example.expensemanagement.fragment.TransactionFragment;
+import com.example.expensemanagement.fragment.StockFragment;
+import androidx.lifecycle.ViewModelProvider;
+import com.example.expensemanagement.NetworkMonitor;
+import com.example.expensemanagement.TransactionViewModel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -32,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
     private FirebaseAuth mAuth;
+    private TransactionViewModel transactionViewModel;
+    private NetworkMonitor networkMonitor;
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -60,12 +66,36 @@ public class MainActivity extends AppCompatActivity {
         setupBottomNav();
 
         if (savedInstanceState == null) {
-            // Sửa: Vào ngay biểu đồ chi tiêu (nav_report) thay vì nav_transaction
             bottomNav.setSelectedItemId(R.id.nav_report);
             loadFragment(R.id.nav_report);
         }
 
+        // Khởi tạo ViewModel và bắt đầu lắng nghe real-time Firestore
+        transactionViewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
+        transactionViewModel.startRealtimeSync();
+
+        // NetworkMonitor: khi bật mạng → tự flush data offline lên Firestore
+        networkMonitor = new NetworkMonitor(this);
+
         checkNotificationPermission();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (networkMonitor != null) networkMonitor.register();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (networkMonitor != null) networkMonitor.unregister();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (transactionViewModel != null) transactionViewModel.stopRealtimeSync();
     }
 
     private void checkNotificationPermission() {
@@ -85,23 +115,17 @@ public class MainActivity extends AppCompatActivity {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(this, NotificationReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
-
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, 18);
-        calendar.set(Calendar.MINUTE, 10); // Ví dụ: đặt 18:10:00 sẽ đẩy thông báo
+        calendar.set(Calendar.MINUTE, 10);
         calendar.set(Calendar.SECOND, 0);
-
-        if (Calendar.getInstance().after(calendar)) {
-            calendar.add(Calendar.DAY_OF_MONTH, 1);
-        }
-
+        if (Calendar.getInstance().after(calendar)) calendar.add(Calendar.DAY_OF_MONTH, 1);
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
+                if (alarmManager.canScheduleExactAlarms())
                     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                } else {
+                else
                     alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                }
             } else {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
             }
@@ -111,10 +135,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupBottomNav() {
-        bottomNav.setOnItemSelectedListener(item -> {
-            loadFragment(item.getItemId());
-            return true;
-        });
+        bottomNav.setOnItemSelectedListener(item -> { loadFragment(item.getItemId()); return true; });
     }
 
     private void loadFragment(int itemId) {

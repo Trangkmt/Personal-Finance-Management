@@ -14,7 +14,6 @@ import com.example.expensemanagement.model.CategoryEntity;
 import com.example.expensemanagement.model.TransactionEntity;
 import com.example.expensemanagement.model.UserEntity;
 import com.example.expensemanagement.model.UserSettingsEntity;
-import com.example.expensemanagement.model.WalletEntity;
 
 import java.util.List;
 
@@ -45,12 +44,18 @@ public interface AppDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertAllCategories(List<CategoryEntity> categories);
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertCategory(CategoryEntity category);
+
     @Query("SELECT * FROM categories WHERE type = :type AND (user_id IS NULL OR user_id = :userId)")
     List<CategoryEntity> getCategoriesByType(String type, String userId);
 
     // Transactions
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertTransaction(TransactionEntity transaction);
+
+    @Query("SELECT * FROM transactions WHERE transaction_id = :transactionId LIMIT 1")
+    TransactionEntity getTransactionById(String transactionId);
 
     @Update
     void updateTransaction(TransactionEntity transaction);
@@ -83,25 +88,10 @@ public interface AppDao {
     @Query("SELECT * FROM budgets WHERE user_id = :userId")
     LiveData<List<BudgetEntity>> getBudgets(String userId);
 
+    @Query("SELECT * FROM budgets WHERE budget_id = :budgetId LIMIT 1")
+    BudgetEntity getBudgetById(String budgetId);
+
     @Query("SELECT * FROM budgets WHERE user_id = :userId AND (category_id = :categoryId OR category_id IS NULL) AND :date BETWEEN start_date AND end_date LIMIT 1")
     BudgetEntity getActiveBudget(String userId, String categoryId, String date);
 
-    // Wallets
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertWallet(WalletEntity wallet);
-
-    @Update
-    void updateWallet(WalletEntity wallet);
-
-    @Delete
-    void deleteWallet(WalletEntity wallet);
-
-    @Query("SELECT * FROM wallets WHERE user_id = :userId")
-    LiveData<List<WalletEntity>> getWalletsByUserId(String userId);
-
-    @Transaction
-    default void transferMoney(String fromId, String toId, double amount) {
-        // This is a simplified version for Room
-        // In a real scenario, you'd fetch the wallets, update their balance, and then update them in the DB
-    }
 }

@@ -3,6 +3,6 @@
     <item android:id="@+id/nav_report"      android:icon="@android:drawable/ic_menu_recent_history" android:title="Báo cáo"/>
     <item android:id="@+id/nav_transaction" android:icon="@android:drawable/ic_menu_agenda"         android:title="Giao dịch"/>
     <item android:id="@+id/nav_add"         android:icon="@android:drawable/ic_input_add"           android:title="Thêm"/>
-    <item android:id="@+id/nav_wallet"      android:icon="@android:drawable/ic_menu_myplaces"       android:title="Ví"/>
+    <item android:id="@+id/nav_stock"       android:icon="@android:drawable/ic_menu_sort_by_size"   android:title="Chứng khoán"/>
     <item android:id="@+id/nav_more"        android:icon="@android:drawable/ic_menu_more"           android:title="Khác"/>
 </menu>

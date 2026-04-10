@@ -1,6 +1,9 @@
 package com.example.expensemanagement.Activitiy;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
@@ -13,11 +16,14 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.expensemanagement.AppDatabase;
+import com.example.expensemanagement.FirestoreSyncHelper;
 import com.example.expensemanagement.R;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -39,6 +45,14 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        // Bật offline persistence — phải gọi trước khi Firestore được dùng lần đầu
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true)
+                .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                .build();
+        firestore.setFirestoreSettings(settings);
+
         mAuth   = FirebaseAuth.getInstance();
         localDb = AppDatabase.getInstance(this);
 
@@ -49,7 +63,23 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (mAuth.getCurrentUser() != null) navigateToMain();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            if (isNetworkAvailable()) {
+                // Có mạng → pull Firestore rồi mới vào app
+                setLoading(true);
+                FirestoreSyncHelper syncHelper = new FirestoreSyncHelper(localDb.appDao());
+                syncHelper.pullAllForUser(currentUser.getUid(), () ->
+                        runOnUiThread(() -> {
+                            setLoading(false);
+                            navigateToMain();
+                        })
+                );
+            } else {
+                // Không có mạng → vào thẳng app, dùng data local
+                navigateToMain();
+            }
+        }
     }
 
     private void initViews() {
@@ -65,7 +95,7 @@ public class LoginActivity extends AppCompatActivity {
     private void setupListeners() {
         btnLogin.setOnClickListener(v -> attemptLogin());
         tvGoToRegister.setOnClickListener(v ->
-            startActivity(new Intent(LoginActivity.this, RegisterActivity.class))
+                startActivity(new Intent(LoginActivity.this, RegisterActivity.class))
         );
         etEmail.setOnFocusChangeListener((v, f)    -> { if (f) tilEmail.setError(null); });
         etPassword.setOnFocusChangeListener((v, f) -> { if (f) tilPassword.setError(null); });
@@ -79,25 +109,49 @@ public class LoginActivity extends AppCompatActivity {
 
         setLoading(true);
         mAuth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this, task -> {
-                if (task.isSuccessful()) {
-                    FirebaseUser firebaseUser = mAuth.getCurrentUser();
-                    if (firebaseUser != null) {
-                        String now = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(new Date());
-                        AppDatabase.executor.execute(() ->
-                            localDb.appDao().updateLastLogin(firebaseUser.getUid(), now)
-                        );
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            String uid = firebaseUser.getUid();
+                            String now = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(new Date());
+
+                            AppDatabase.executor.execute(() ->
+                                    localDb.appDao().updateLastLogin(uid, now)
+                            );
+
+                            FirestoreSyncHelper syncHelper = new FirestoreSyncHelper(localDb.appDao());
+                            syncHelper.pullAllForUser(uid, () ->
+                                    runOnUiThread(() -> {
+                                        setLoading(false);
+                                        Toast.makeText(this, "Đồng bộ dữ liệu thành công!", Toast.LENGTH_SHORT).show();
+                                        navigateToMain();
+                                    })
+                            );
+                        } else {
+                            setLoading(false);
+                            navigateToMain();
+                        }
+                    } else {
+                        setLoading(false);
+                        String msg = task.getException() != null
+                                ? getFirebaseErrorMessage(task.getException().getMessage())
+                                : getString(R.string.error_login_failed);
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
                     }
-                    setLoading(false);
-                    navigateToMain();
-                } else {
-                    setLoading(false);
-                    String msg = task.getException() != null
-                        ? getFirebaseErrorMessage(task.getException().getMessage())
-                        : getString(R.string.error_login_failed);
-                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
-                }
-            });
+                });
+    }
+
+    /** Kiểm tra có kết nối mạng không */
+    private boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        NetworkCapabilities caps = cm.getNetworkCapabilities(cm.getActiveNetwork());
+        return caps != null && (
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        );
     }
 
     private boolean validateInput(String email, String password) {
