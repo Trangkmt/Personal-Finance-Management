@@ -12,7 +12,6 @@ import com.example.expensemanagement.model.CategoryEntity;
 import com.example.expensemanagement.model.TransactionEntity;
 import com.example.expensemanagement.model.UserEntity;
 import com.example.expensemanagement.model.UserSettingsEntity;
-import com.example.expensemanagement.model.WalletEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,16 +19,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Database(
-    entities = {
-        UserEntity.class,
-        UserSettingsEntity.class,
-        CategoryEntity.class,
-        TransactionEntity.class,
-        BudgetEntity.class,
-        WalletEntity.class
-    },
-    version = 15,
-    exportSchema = false
+        entities = {
+                UserEntity.class,
+                UserSettingsEntity.class,
+                CategoryEntity.class,
+                TransactionEntity.class,
+                BudgetEntity.class,
+        },
+        version = 16,
+        exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
 
@@ -44,23 +42,23 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(
-                            context.getApplicationContext(),
-                            AppDatabase.class,
-                            DB_NAME
-                        )
-                        .fallbackToDestructiveMigration()
-                        .addCallback(new RoomDatabase.Callback() {
-                            @Override
-                            public void onCreate(@NonNull SupportSQLiteDatabase db) {
-                                super.onCreate(db);
-                                executor.execute(() -> {
-                                    if (INSTANCE != null) {
-                                        INSTANCE.appDao().insertAllCategories(buildSeedCategories());
-                                    }
-                                });
-                            }
-                        })
-                        .build();
+                                    context.getApplicationContext(),
+                                    AppDatabase.class,
+                                    DB_NAME
+                            )
+                            .fallbackToDestructiveMigration()
+                            .addCallback(new RoomDatabase.Callback() {
+                                @Override
+                                public void onCreate(@NonNull SupportSQLiteDatabase db) {
+                                    super.onCreate(db);
+                                    executor.execute(() -> {
+                                        if (INSTANCE != null) {
+                                            INSTANCE.appDao().insertAllCategories(buildSeedCategories());
+                                        }
+                                    });
+                                }
+                            })
+                            .build();
                 }
             }
         }
