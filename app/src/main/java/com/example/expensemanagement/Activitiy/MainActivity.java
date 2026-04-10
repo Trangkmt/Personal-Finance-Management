@@ -23,7 +23,6 @@ import com.example.expensemanagement.fragment.BudgetFragment;
 import com.example.expensemanagement.fragment.HomeFragment;
 import com.example.expensemanagement.fragment.PlaceholderFragment;
 import com.example.expensemanagement.fragment.TransactionFragment;
-import com.example.expensemanagement.fragment.WalletFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -127,8 +126,6 @@ public class MainActivity extends AppCompatActivity {
             fragment = TransactionFragment.newInstance();
         } else if (itemId == R.id.nav_add) {
             fragment = BudgetFragment.newInstance();
-        } else if (itemId == R.id.nav_wallet) {
-            fragment = WalletFragment.newInstance();
         } else if (itemId == R.id.nav_more) {
             fragment = AccountFragment.newInstance();
         } else {
