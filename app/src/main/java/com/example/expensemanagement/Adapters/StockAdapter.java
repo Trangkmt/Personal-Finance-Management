@@ -16,12 +16,22 @@ import com.example.expensemanagement.widget.MiniChartView;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> {
 
     private List<StockItem> items = new ArrayList<>();
     private final DecimalFormat fmtVND = new DecimalFormat("#,###");
     private final DecimalFormat fmtUSD = new DecimalFormat("#,##0.00");
+    private OnItemClickListener listener;
+
+    public interface OnItemClickListener {
+        void onItemClick(StockItem item);
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
 
     public void setItems(List<StockItem> items) {
         this.items = items;
@@ -40,46 +50,53 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
     public void onBindViewHolder(@NonNull ViewHolder h, int position) {
         StockItem s = items.get(position);
 
-        h.tvSymbol.setText(s.symbol);
-        h.tvFullName.setText(s.fullName);
+        h.tvStockSymbol.setText(s.symbol);
+        h.tvStockName.setText(s.fullName);
 
         // Giá
         if ("VND".equals(s.currency)) {
-            h.tvPrice.setText(fmtVND.format(s.price));
+            h.tvStockPrice.setText(fmtVND.format(s.price) + " đ");
         } else {
-            h.tvPrice.setText(fmtUSD.format(s.price));
+            h.tvStockPrice.setText("$" + fmtUSD.format(s.price));
         }
 
         // Thay đổi
         String sign = s.isPositive ? "+" : "";
         String changeStr;
         if ("VND".equals(s.currency)) {
-            changeStr = sign + fmtVND.format(s.change);
+            changeStr = sign + fmtVND.format(s.change) + " (" + String.format(Locale.US, "%.2f", s.changePct) + "%)";
         } else {
-            changeStr = sign + fmtUSD.format(s.change);
+            changeStr = sign + fmtUSD.format(s.change) + " (" + String.format(Locale.US, "%.2f", s.changePct) + "%)";
         }
-        h.tvChange.setText(changeStr);
-        h.tvChange.setBackgroundColor(s.isPositive ? Color.parseColor("#30D158") : Color.parseColor("#FF453A"));
-        h.tvChange.setTextColor(Color.WHITE);
+        h.tvStockChange.setText(changeStr);
+        h.tvStockChange.setTextColor(s.isPositive ? Color.parseColor("#30D158") : Color.parseColor("#FF453A"));
 
         // Mini chart
-        h.miniChart.setData(s.chartPoints, s.isPositive);
+        if (h.miniChart != null) {
+            h.miniChart.setData(s.chartPoints, s.isPositive);
+        }
+
+        h.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(s);
+            }
+        });
     }
 
     @Override
     public int getItemCount() { return items.size(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvSymbol, tvFullName, tvPrice, tvChange;
+        TextView tvStockSymbol, tvStockName, tvStockPrice, tvStockChange;
         MiniChartView miniChart;
 
         ViewHolder(View v) {
             super(v);
-            tvSymbol   = v.findViewById(R.id.tvSymbol);
-            tvFullName = v.findViewById(R.id.tvFullName);
-            tvPrice    = v.findViewById(R.id.tvPrice);
-            tvChange   = v.findViewById(R.id.tvChange);
-            miniChart  = v.findViewById(R.id.miniChart);
+            tvStockSymbol = v.findViewById(R.id.tvSymbol);
+            tvStockName   = v.findViewById(R.id.tvStockName);
+            tvStockPrice  = v.findViewById(R.id.tvPrice);
+            tvStockChange = v.findViewById(R.id.tvChange);
+            miniChart     = v.findViewById(R.id.miniChart);
         }
     }
 }

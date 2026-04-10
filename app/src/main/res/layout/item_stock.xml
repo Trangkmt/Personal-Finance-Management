@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:orientation="horizontal"
+        android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp">
+        android:orientation="horizontal"
+        android:padding="16dp">
 
-        <!-- Symbol + Name -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -24,63 +24,52 @@
                 android:id="@+id/tvSymbol"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#FFFFFF"
-                android:textSize="17sp"
-                android:textStyle="bold"/>
+                android:text="SYMBOL"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tvFullName"
+                android:id="@+id/tvStockName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#8E8E93"
-                android:textSize="13sp"
-                android:layout_marginTop="2dp"
+                android:text="Company Name"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
                 android:maxLines="1"
-                android:ellipsize="end"/>
+                android:ellipsize="end" />
         </LinearLayout>
 
-        <!-- Mini Chart -->
+        <!-- Mini Chart in the middle -->
         <com.example.expensemanagement.widget.MiniChartView
             android:id="@+id/miniChart"
             android:layout_width="80dp"
             android:layout_height="40dp"
-            android:layout_marginEnd="12dp"/>
+            android:layout_marginHorizontal="12dp" />
 
-        <!-- Price + Change -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="end">
+            android:gravity="end"
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/tvPrice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#FFFFFF"
-                android:textSize="17sp"
-                android:textStyle="bold"/>
+                android:text="100.00"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvChange"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:layout_marginTop="3dp"/>
+                android:text="+1.50 (1.5%)"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/income_green" />
         </LinearLayout>
-
     </LinearLayout>
-
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0.5dp"
-        android:background="#2C2C2E"
-        android:layout_marginStart="4dp"/>
-
-</LinearLayout>
+</androidx.cardview.widget.CardView>
