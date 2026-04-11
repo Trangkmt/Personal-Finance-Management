@@ -17,7 +17,6 @@ import com.example.expensemanagement.model.MonthlyTotal;
 import com.example.expensemanagement.model.TransactionEntity;
 import com.example.expensemanagement.model.UserEntity;
 import com.example.expensemanagement.model.UserSettingsEntity;
-import com.example.expensemanagement.model.WalletEntity;
 
 
 import java.util.List;
