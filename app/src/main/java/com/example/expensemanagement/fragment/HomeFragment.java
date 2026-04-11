@@ -2,6 +2,7 @@ package com.example.expensemanagement.fragment;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,38 +11,41 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.expensemanagement.AppDatabase;
 import com.example.expensemanagement.R;
 import com.example.expensemanagement.TransactionViewModel;
+import com.example.expensemanagement.Adapters.ChartAdapter;
+import com.example.expensemanagement.model.CategoryTotal;
+import com.example.expensemanagement.model.DailyTotal;
+import com.example.expensemanagement.model.MonthlyTotal;
 import com.example.expensemanagement.model.TransactionEntity;
 import com.github.mikephil.charting.charts.BarChart;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.data.BarEntry;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.components.*;
+import com.github.mikephil.charting.data.*;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
+import com.github.mikephil.charting.highlight.Highlight;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class HomeFragment extends Fragment {
 
-    private TextView tvName, tvBalance, tvIncome, tvExpense;
-    private BarChart barChart;
+    private TextView tvName, tvBalance, tvIncome, tvExpense, tvSelectedMonth;
+    private RecyclerView rvCharts;
+    private BarChart barChartDaily;
+
     private TransactionViewModel viewModel;
+    private ChartAdapter chartAdapter;
+
     private final DecimalFormat format = new DecimalFormat("#,###");
 
-    public HomeFragment() {}
-
-    public static HomeFragment newInstance() {
-        return new HomeFragment();
-    }
+    private List<TransactionEntity> cachedList = new ArrayList<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -54,14 +58,24 @@ public class HomeFragment extends Fragment {
         tvBalance = view.findViewById(R.id.tvBalance);
         tvIncome = view.findViewById(R.id.tvIncome);
         tvExpense = view.findViewById(R.id.tvExpense);
-        barChart = view.findViewById(R.id.barChart);
+        tvSelectedMonth = view.findViewById(R.id.tvSelectedMonth);
+        rvCharts = view.findViewById(R.id.rvCharts);
+        barChartDaily = view.findViewById(R.id.barChartDaily);
 
         viewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
 
+        rvCharts.setLayoutManager(new LinearLayoutManager(requireContext()));
+        barChartDaily.setVisibility(View.GONE);
+
         loadUserInfo();
         observeData();
+        loadCharts();
 
         return view;
+    }
+
+    public static HomeFragment newInstance() {
+        return new HomeFragment();
     }
 
     private void loadUserInfo() {
@@ -80,125 +94,281 @@ public class HomeFragment extends Fragment {
     private void observeData() {
         viewModel.getFilteredTransactions().observe(getViewLifecycleOwner(), entities -> {
 
-            int income = 0;
-            int expense = 0;
+            cachedList.clear();
+
+            double income = 0;
+            double expense = 0;
 
             if (entities != null) {
+                cachedList.addAll(entities);
+
                 for (TransactionEntity entity : entities) {
+                    if (entity == null) continue;
+
                     if ("income".equalsIgnoreCase(entity.type)) {
                         income += entity.amount;
                     } else {
                         expense += entity.amount;
                     }
                 }
-
-                setupChart(entities); // 🔥 update chart realtime
             }
 
             tvIncome.setText("+ " + format.format(income) + " đ");
             tvExpense.setText("- " + format.format(expense) + " đ");
             tvBalance.setText(format.format(income - expense) + " đ");
+
+            tvSelectedMonth.setText("");
         });
     }
 
-    // CHART
-    private void setupChart(List<TransactionEntity> entities) {
+    private void loadCharts() {
 
-        barChart.clear(); // FIX BUG mất dữ liệu khi quay lại fragment
+        final android.content.Context context = getContext();
+        if (context == null) return;
 
-        float[] incomeByDay = new float[7];
-        float[] expenseByDay = new float[7];
+        AppDatabase.executor.execute(() -> {
+            try {
+                AppDatabase db = AppDatabase.getInstance(context);
 
-        for (TransactionEntity entity : entities) {
-            int index = getDayIndex(entity.transactionDate);
+                List<MonthlyTotal> monthlyList = db.appDao().getMonthlyTotals();
+                List<CategoryTotal> categoryList = db.appDao().getCategoryTotals();
 
-            if (index >= 0 && index < 7) {
-                if ("income".equalsIgnoreCase(entity.type)) {
-                    incomeByDay[index] += entity.amount;
-                } else {
-                    expenseByDay[index] += entity.amount;
+                if (monthlyList == null) monthlyList = new ArrayList<>();
+                if (categoryList == null) categoryList = new ArrayList<>();
+
+                final List<MonthlyTotal> finalMonthlyList = monthlyList;
+                final List<CategoryTotal> finalCategoryList = categoryList;
+
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+
+                        chartAdapter = new ChartAdapter(
+                                finalMonthlyList,
+                                finalCategoryList,
+                                month -> filterByMonth(month)
+                        );
+
+                        rvCharts.setAdapter(chartAdapter);
+                    });
                 }
+
+            } catch (Exception e) {
+                Log.e("HOME_CRASH", "loadCharts error", e);
             }
-        }
-
-        ArrayList<BarEntry> incomeEntries = new ArrayList<>();
-        ArrayList<BarEntry> expenseEntries = new ArrayList<>();
-
-        for (int i = 0; i < 7; i++) {
-            incomeEntries.add(new BarEntry(i, incomeByDay[i]));
-            expenseEntries.add(new BarEntry(i, expenseByDay[i]));
-        }
-
-        BarDataSet incomeSet = new BarDataSet(incomeEntries, "Thu");
-        incomeSet.setColor(Color.parseColor("#4CAF50"));
-        incomeSet.setValueTextSize(10f);
-
-        BarDataSet expenseSet = new BarDataSet(expenseEntries, "Chi");
-        expenseSet.setColor(Color.parseColor("#F44336"));
-        expenseSet.setValueTextSize(10f);
-
-        BarData barData = new BarData(incomeSet, expenseSet);
-
-        float groupSpace = 0.2f;
-        float barSpace = 0.05f;
-        float barWidth = 0.35f;
-
-        barData.setBarWidth(barWidth);
-
-        barChart.setData(barData);
-
-        // FIX LỆCH / MẤT CỘT
-        barChart.getXAxis().setAxisMinimum(0f);
-        barChart.getXAxis().setAxisMaximum(
-                0f + barData.getGroupWidth(groupSpace, barSpace) * 7
-        );
-
-        barChart.groupBars(0f, groupSpace, barSpace);
-
-        // STYLE
-        barChart.setFitBars(true);
-        barChart.setDrawGridBackground(false);
-        barChart.setDrawBarShadow(false);
-
-        barChart.getDescription().setEnabled(false);
-        barChart.getAxisRight().setEnabled(false);
-
-        barChart.getAxisLeft().setTextColor(Color.GRAY);
-        barChart.getAxisLeft().setGridColor(Color.LTGRAY);
-
-        // Thứ
-        String[] days = {"T2","T3","T4","T5","T6","T7","CN"};
-        XAxis xAxis = barChart.getXAxis();
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(days));
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setTextColor(Color.GRAY);
-        xAxis.setDrawGridLines(false);
-        xAxis.setGranularity(1f);
-
-        // Animation
-        barChart.animateY(1200);
-
-        barChart.notifyDataSetChanged();
-        barChart.invalidate();
+        });
     }
 
-    // TÍNH NGÀY
-    private int getDayIndex(String dateStr) {
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            Date date = sdf.parse(dateStr);
+    private void filterByMonth(int month) {
 
-            Calendar cal = Calendar.getInstance();
-            Calendar today = Calendar.getInstance();
+        if (cachedList == null || cachedList.isEmpty()) return;
 
-            cal.setTime(date);
+        List<TransactionEntity> filtered = new ArrayList<>();
 
-            long diff = today.getTimeInMillis() - cal.getTimeInMillis();
-            int days = (int) (diff / (1000 * 60 * 60 * 24));
+        double income = 0;
+        double expense = 0;
 
-            return 6 - days;
-        } catch (Exception e) {
-            return -1;
+        for (TransactionEntity item : cachedList) {
+            if (item == null) continue;
+
+            try {
+                int m = Integer.parseInt(item.transactionDate.substring(5, 7));
+
+                if (m == month) {
+                    filtered.add(item);
+
+                    if ("income".equalsIgnoreCase(item.type)) {
+                        income += item.amount;
+                    } else {
+                        expense += item.amount;
+                    }
+                }
+            } catch (Exception ignored) {}
         }
+
+        tvIncome.setText("+ " + format.format(income) + " đ");
+        tvExpense.setText("- " + format.format(expense) + " đ");
+        tvBalance.setText(format.format(income - expense) + " đ");
+
+        tvSelectedMonth.setText("📊 Tháng " + month);
+
+        // 🔥 FIX MÀU: KHÔNG set màu cứng nữa
+        List<CategoryTotal> newCategory = buildCategoryFromList(filtered);
+        if (chartAdapter != null) {
+            chartAdapter.updateCategoryList(newCategory);
+        }
+
+        barChartDaily.setVisibility(View.VISIBLE);
+        loadDailyChart(month);
+    }
+
+    private List<CategoryTotal> buildCategoryFromList(List<TransactionEntity> list) {
+
+        Map<String, Double> map = new HashMap<>();
+
+        for (TransactionEntity item : list) {
+            if (item == null) continue;
+
+            String category = item.categoryId;
+            double amount = item.amount;
+
+            map.put(category, map.getOrDefault(category, 0.0) + amount);
+        }
+
+        List<CategoryTotal> result = new ArrayList<>();
+
+        for (String key : map.keySet()) {
+            CategoryTotal ct = new CategoryTotal();
+            ct.category = key;
+            ct.total = map.get(key);
+
+            // để null để ChartAdapter tự random màu
+            ct.color = null;
+
+            result.add(ct);
+        }
+
+        return result;
+    }
+
+    private void loadDailyChart(int month) {
+
+        final android.content.Context context = getContext();
+        if (context == null) return;
+
+        AppDatabase.executor.execute(() -> {
+            try {
+                AppDatabase db = AppDatabase.getInstance(context);
+
+                String m = String.format("%02d", month);
+                List<DailyTotal> dailyList = db.appDao().getDailyTotalsByMonth(m);
+
+                if (dailyList == null) dailyList = new ArrayList<>();
+
+                Map<String, Float> map = new HashMap<>();
+
+                for (DailyTotal d : dailyList) {
+                    map.put(d.day, (float) d.total);
+                }
+
+                List<BarEntry> entries = new ArrayList<>();
+                List<String> labels = new ArrayList<>();
+
+                float maxValue = 0;
+
+                for (int i = 1; i <= 31; i++) {
+                    String day = String.format("%02d", i);
+                    float value = map.containsKey(day) ? map.get(day) : 0f;
+
+                    entries.add(new BarEntry(i - 1, value));
+                    labels.add(day);
+
+                    if (value > maxValue) maxValue = value;
+                }
+
+                float finalMax = maxValue;
+
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+
+                        BarDataSet dataSet = new BarDataSet(entries, "Theo ngày");
+                        dataSet.setColor(Color.parseColor("#FF9800"));
+                        dataSet.setDrawValues(false);
+
+                        BarData data = new BarData(dataSet);
+                        data.setBarWidth(0.9f);
+
+                        barChartDaily.setData(data);
+
+                        XAxis xAxis = barChartDaily.getXAxis();
+                        xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
+                        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+                        xAxis.setGranularity(1f);
+                        xAxis.setDrawGridLines(false);
+
+                        YAxis yAxis = barChartDaily.getAxisLeft();
+                        barChartDaily.getAxisRight().setEnabled(false);
+                        yAxis.setDrawGridLines(false);
+
+                        float axisMax = (float) (Math.ceil(finalMax / 10000) * 10000);
+                        if (axisMax == 0) axisMax = 10000;
+
+                        yAxis.setAxisMinimum(0f);
+                        yAxis.setAxisMaximum(axisMax);
+
+                        barChartDaily.setVisibleXRangeMaximum(7f);
+                        barChartDaily.setDragEnabled(true);
+                        barChartDaily.setScaleEnabled(false);
+
+                        Calendar cal = Calendar.getInstance();
+                        int currentDay = cal.get(Calendar.DAY_OF_MONTH);
+                        barChartDaily.moveViewToX(Math.max(currentDay - 3, 0));
+
+                        barChartDaily.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+                            @Override
+                            public void onValueSelected(Entry e, Highlight h) {
+                                int day = (int) e.getX() + 1;
+                                showTransactionsByDay(month, day);
+                            }
+
+                            @Override
+                            public void onNothingSelected() {}
+                        });
+
+                        barChartDaily.getDescription().setEnabled(false);
+                        barChartDaily.getLegend().setEnabled(false);
+
+                        barChartDaily.animateY(1200);
+                        barChartDaily.invalidate();
+                    });
+                }
+
+            } catch (Exception e) {
+                Log.e("DAILY_CHART", "error", e);
+            }
+        });
+    }
+
+    private void showTransactionsByDay(int month, int day) {
+
+        List<TransactionEntity> result = new ArrayList<>();
+
+        for (TransactionEntity item : cachedList) {
+            if (item == null) continue;
+
+            try {
+                int m = Integer.parseInt(item.transactionDate.substring(5, 7));
+                int d = Integer.parseInt(item.transactionDate.substring(8, 10));
+
+                if (m == month && d == day) {
+                    result.add(item);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        showTransactionDialog(day, result);
+    }
+
+    private void showTransactionDialog(int day, List<TransactionEntity> list) {
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("📅 Ngày ").append(day).append("\n\n");
+
+        for (TransactionEntity t : list) {
+            builder.append("• ")
+                    .append(t.categoryId)
+                    .append(" - ")
+                    .append(format.format(t.amount))
+                    .append(" đ\n");
+        }
+
+        if (list.isEmpty()) {
+            builder.append("Không có giao dịch");
+        }
+
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Chi tiết giao dịch")
+                .setMessage(builder.toString())
+                .setPositiveButton("OK", null)
+                .show();
     }
 }

@@ -11,9 +11,13 @@ import androidx.room.Transaction;
 
 import com.example.expensemanagement.model.BudgetEntity;
 import com.example.expensemanagement.model.CategoryEntity;
+import com.example.expensemanagement.model.CategoryTotal;
+import com.example.expensemanagement.model.DailyTotal;
+import com.example.expensemanagement.model.MonthlyTotal;
 import com.example.expensemanagement.model.TransactionEntity;
 import com.example.expensemanagement.model.UserEntity;
 import com.example.expensemanagement.model.UserSettingsEntity;
+
 
 import java.util.List;
 
@@ -93,5 +97,32 @@ public interface AppDao {
 
     @Query("SELECT * FROM budgets WHERE user_id = :userId AND (category_id = :categoryId OR category_id IS NULL) AND :date BETWEEN start_date AND end_date LIMIT 1")
     BudgetEntity getActiveBudget(String userId, String categoryId, String date);
+
+    @Query("SELECT substr(transaction_date, 6, 2) as month, SUM(amount) as total " +
+            "FROM transactions " +
+            "WHERE type = 'expense' " +
+            "GROUP BY month " +
+            "ORDER BY month")
+    List<MonthlyTotal> getMonthlyTotals();
+
+    @Query("SELECT c.name as category, SUM(t.amount) as total, c.color as color " +
+            "FROM transactions t " +
+            "JOIN categories c ON t.category_id = c.category_id " +
+            "WHERE t.type = 'expense' " +
+            "GROUP BY c.category_id")
+    List<CategoryTotal> getCategoryTotals();
+
+    @Query("SELECT substr(transaction_date, 9, 2) as day, SUM(amount) as total " +
+            "FROM transactions " +
+            "WHERE type = 'expense' AND substr(transaction_date, 6, 2) = :month " +
+            "GROUP BY day " +
+            "ORDER BY day")
+    List<DailyTotal> getDailyTotalsByMonth(String month);
+
+    @Transaction
+    default void transferMoney(String fromId, String toId, double amount) {
+        // This is a simplified version for Room
+        // In a real scenario, you'd fetch the wallets, update their balance, and then update them in the DB
+    }
 
 }
