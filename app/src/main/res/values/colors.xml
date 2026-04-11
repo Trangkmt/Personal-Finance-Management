@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- App Accent (Pink/Magenta from sample) -->
+    <color name="accent_pink">#D81B60</color>
+    <color name="accent_pink_light">#FCE4EC</color>
+    
+    <!-- Original Palette -->
+    <color name="primary_green">#4A7C59</color>
+    <color name="primary_dark">#064E3B</color>
+    <color name="primary_light">#D1FAE5</color>
+    
+    <color name="screen_bg">#FDF2F8</color> <!-- Light pinkish bg -->
+    <color name="card_bg">#FFFFFF</color>
+    
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_hint">#9CA3AF</color>
+    
+    <color name="income_green">#10B981</color>
+    <color name="expense_red">#EF4444</color>
+    
+    <color name="divider">#F3F4F6</color>
+    <color name="gray_light">#F3F4F6</color>
+</resources>
