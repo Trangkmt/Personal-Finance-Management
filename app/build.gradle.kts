@@ -1,4 +1,3 @@
-
 plugins {
     alias(libs.plugins.android.application)
     id("com.google.gms.google-services")
@@ -55,11 +54,12 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
 
     implementation(libs.appcompat)
+    implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     
-    
+
     // Alpha Vantage Java Library
     implementation("com.github.crazzyghost:alphavantage-java:1.8.0")
 
