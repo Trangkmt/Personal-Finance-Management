@@ -7,6 +7,7 @@
     android:padding="24dp">
 
     <TextView
+        android:id="@+id/tvDialogTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Thiết lập ngân sách"
@@ -41,6 +42,28 @@
         android:layout_height="48dp"
         android:layout_marginTop="8dp"/>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Chu kỳ ngân sách"
+        android:layout_marginTop="16dp"
+        android:textSize="14sp"/>
+
+    <Spinner
+        android:id="@+id/spBudgetPeriod"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"/>
+
+    <CheckBox
+        android:id="@+id/cbAutoRepeat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Tự động lặp lại cho kỳ sau"
+        android:textSize="14sp"
+        android:checked="true"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -66,7 +89,7 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="Thiết lập"
+            android:text="Lưu"
             android:textAllCaps="false"
             android:textColor="@android:color/white"
             app:backgroundTint="@color/primary_green"/>

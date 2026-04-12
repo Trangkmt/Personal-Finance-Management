@@ -22,13 +22,14 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 public class TransactionViewModel extends AndroidViewModel {
     private final AppDao appDao;
     private final Application application;
     private final FirestoreSyncHelper syncHelper;
     private final PendingSyncStore pendingStore;
-    private ListenerRegistration realtimeListener; // Lắng nghe thay đổi real-time từ Firestore
+    private ListenerRegistration realtimeListener;
 
     private final MutableLiveData<FilterConfig> filterConfig = new MutableLiveData<>(new FilterConfig(FilterType.ALL));
 
@@ -86,11 +87,12 @@ public class TransactionViewModel extends AndroidViewModel {
         return new String[]{start, end};
     }
 
-    /** Thêm transaction: lưu Room + push Firestore (hoặc lưu pending nếu offline) */
     public void insert(TransactionEntity transaction) {
         AppDatabase.executor.execute(() -> {
             appDao.insertTransaction(transaction);
-            if ("expense".equalsIgnoreCase(transaction.type)) checkBudgetExceeded(transaction);
+            if ("expense".equalsIgnoreCase(transaction.type)) {
+                checkBudgetAndNotify(transaction);
+            }
         });
         if (isNetworkAvailable()) {
             syncHelper.pushTransaction(transaction);
@@ -99,7 +101,6 @@ public class TransactionViewModel extends AndroidViewModel {
         }
     }
 
-    /** Sửa transaction */
     public void update(TransactionEntity transaction) {
         AppDatabase.executor.execute(() -> appDao.updateTransaction(transaction));
         if (isNetworkAvailable()) {
@@ -109,7 +110,6 @@ public class TransactionViewModel extends AndroidViewModel {
         }
     }
 
-    /** Xóa transaction */
     public void delete(TransactionEntity transaction) {
         AppDatabase.executor.execute(() -> appDao.deleteTransaction(transaction));
         if (isNetworkAvailable()) {
@@ -125,10 +125,6 @@ public class TransactionViewModel extends AndroidViewModel {
         return appDao.getAllTransactions(userId);
     }
 
-    /**
-     * Bắt đầu lắng nghe thay đổi real-time từ Firestore.
-     * Gọi trong Fragment/Activity khi start, dừng khi stop.
-     */
     public void startRealtimeSync() {
         String userId = getUserId();
         if (userId == null) return;
@@ -149,7 +145,6 @@ public class TransactionViewModel extends AndroidViewModel {
                                 }
                                 continue;
                             }
-                            // Parse và upsert vào Room
                             try {
                                 String id      = doc.getString("transaction_id");
                                 String uid     = doc.getString("user_id");
@@ -186,17 +181,57 @@ public class TransactionViewModel extends AndroidViewModel {
                         caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
     }
 
-    private void checkBudgetExceeded(TransactionEntity transaction) {
+    private void checkBudgetAndNotify(TransactionEntity transaction) {
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         BudgetEntity budget = appDao.getActiveBudget(transaction.userId, transaction.categoryId, today);
+        
+        if (budget == null) {
+            // Check for overall budget if category budget not found
+            budget = appDao.getActiveBudget(transaction.userId, null, today);
+        }
+
         if (budget != null) {
             double spent = appDao.getSpentByCategory(transaction.userId, budget.categoryId, budget.startDate, budget.endDate);
-            if (spent > budget.amount) {
-                NotificationHelper.showNotification(application, "Cảnh báo vượt ngân sách!",
-                        "Bạn đã chi tiêu " + String.format(Locale.getDefault(), "%,.0f", spent) +
-                                " đ cho mục " + (budget.categoryId == null ? "Tổng thể" : budget.categoryId) +
-                                ", vượt mức ngân sách " + String.format(Locale.getDefault(), "%,.0f", budget.amount) + " đ.");
+            double percent = (spent / budget.amount) * 100;
+            String categoryName = budget.categoryId == null ? "Tổng thể" : budget.categoryId;
+
+            if (percent >= 100) {
+                NotificationHelper.showNotification(application, "Vượt ngân sách!", 
+                    "Bạn đã chi tiêu quá giới hạn ngân sách " + categoryName + ".");
+            } else if (percent >= 80) {
+                NotificationHelper.showNotification(application, "Sắp hết ngân sách!", 
+                    "Ngân sách " + categoryName + " của bạn đã dùng hết " + (int)percent + "%.");
             }
+            
+            // Phân tích thông minh
+            analyzeSpendingRate(budget, spent, categoryName);
         }
+    }
+
+    private void analyzeSpendingRate(BudgetEntity budget, double totalSpent, String categoryName) {
+        try {
+            SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date start = df.parse(budget.startDate);
+            Date end = df.parse(budget.endDate);
+            Date now = new Date();
+
+            if (start != null && end != null && now.after(start)) {
+                long daysPassed = TimeUnit.MILLISECONDS.toDays(now.getTime() - start.getTime()) + 1;
+                long totalDays = TimeUnit.MILLISECONDS.toDays(end.getTime() - start.getTime()) + 1;
+                
+                double avgSpentPerDay = totalSpent / daysPassed;
+                double remainingBudget = budget.amount - totalSpent;
+                
+                if (remainingBudget > 0 && avgSpentPerDay > 0) {
+                    int daysToEmpty = (int) (remainingBudget / avgSpentPerDay);
+                    long daysRemaining = totalDays - daysPassed;
+
+                    if (daysToEmpty < daysRemaining && daysToEmpty <= 7) {
+                        NotificationHelper.showNotification(application, "Gợi ý thông minh", 
+                            "Với tốc độ này, bạn sẽ hết ngân sách " + categoryName + " trong khoảng " + daysToEmpty + " ngày tới.");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
     }
 }

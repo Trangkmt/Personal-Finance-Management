@@ -1,5 +1,6 @@
 package com.example.expensemanagement.fragment;
 
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.text.Editable;
@@ -7,6 +8,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -15,6 +17,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -27,6 +30,7 @@ import com.example.expensemanagement.model.TransactionEntity;
 import com.example.expensemanagement.model.TransactionItem;
 import com.google.android.material.chip.ChipGroup;
 
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -55,6 +59,7 @@ public class TransactionHistoryFragment extends Fragment implements TransactionA
 
     private final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private final SimpleDateFormat displayDf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+    private final DecimalFormat moneyFormatter = new DecimalFormat("#,###");
 
     public static TransactionHistoryFragment newInstance() {
         return new TransactionHistoryFragment();
@@ -96,7 +101,6 @@ public class TransactionHistoryFragment extends Fragment implements TransactionA
         tvEndDate = view.findViewById(R.id.tvEndDate);
         etSearchCategory = view.findViewById(R.id.etSearchCategory);
 
-        // Mặc định chọn khoảng thời gian là tháng hiện tại
         Calendar c = Calendar.getInstance();
         c.set(Calendar.DAY_OF_MONTH, 1);
         startDateStr = df.format(c.getTime());
@@ -184,7 +188,6 @@ public class TransactionHistoryFragment extends Fragment implements TransactionA
             }
             Collections.sort(filteredEntities, (o1, o2) -> o1.categoryId.compareTo(o2.categoryId));
         } else {
-            // Mặc định: Tất cả
             filteredEntities.addAll(allEntities);
         }
 
@@ -203,6 +206,40 @@ public class TransactionHistoryFragment extends Fragment implements TransactionA
         if (adapter != null) {
             adapter.notifyDataSetChanged();
         }
+    }
+
+    @Override
+    public void onItemClick(int position) {
+        if (position < 0 || position >= displayItems.size()) return;
+        TransactionItem item = displayItems.get(position);
+        showDetailDialog(item);
+    }
+
+    private void showDetailDialog(TransactionItem item) {
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_transaction_detail, null);
+        AlertDialog dialog = new AlertDialog.Builder(getContext())
+                .setView(dialogView)
+                .create();
+
+        TextView tvAmount = dialogView.findViewById(R.id.tvDetailAmount);
+        TextView tvType = dialogView.findViewById(R.id.tvDetailType);
+        TextView tvCategory = dialogView.findViewById(R.id.tvDetailCategory);
+        TextView tvDate = dialogView.findViewById(R.id.tvDetailDate);
+        TextView tvNote = dialogView.findViewById(R.id.tvDetailNote);
+        Button btnClose = dialogView.findViewById(R.id.btnCloseDetail);
+
+        tvAmount.setText(moneyFormatter.format(item.getAmount()) + " đ");
+        tvAmount.setTextColor(ContextCompat.getColor(getContext(), item.isIncome() ? R.color.income_green : R.color.expense_red));
+        
+        tvType.setText(item.isIncome() ? "Thu nhập" : "Chi tiêu");
+        tvType.setTextColor(tvAmount.getTextColors());
+        
+        tvCategory.setText(item.getCategory());
+        tvDate.setText(item.getDate());
+        tvNote.setText(item.getTitle() != null && !item.getTitle().isEmpty() ? item.getTitle() : "Không có ghi chú");
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
     }
 
     @Override public void onEdit(int position) { }

@@ -1,9 +1,11 @@
 package com.example.expensemanagement.Adapters;
 
+import android.app.AlertDialog;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -24,6 +26,15 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.ViewHolder
     private List<BudgetEntity> budgets = new ArrayList<>();
     private final BudgetViewModel viewModel;
     private final DecimalFormat formatter = new DecimalFormat("#,###");
+    private OnItemClickListener listener;
+
+    public interface OnItemClickListener {
+        void onItemClick(BudgetEntity budget);
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
 
     public BudgetAdapter(BudgetViewModel viewModel) {
         this.viewModel = viewModel;
@@ -45,7 +56,7 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.ViewHolder
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         BudgetEntity budget = budgets.get(position);
-        holder.bind(budget, viewModel, formatter);
+        holder.bind(budget, viewModel, formatter, listener);
     }
 
     @Override
@@ -56,6 +67,7 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.ViewHolder
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvCategory, tvPercent, tvDates, tvSpent, tvTotal, tvWarning;
         LinearProgressIndicator progress;
+        ImageView ivDelete;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -66,15 +78,36 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.ViewHolder
             tvTotal = itemView.findViewById(R.id.tvTotalBudget);
             tvWarning = itemView.findViewById(R.id.tvBudgetWarning);
             progress = itemView.findViewById(R.id.progressBudget);
+            ivDelete = itemView.findViewById(R.id.ivDeleteBudget);
         }
 
-        public void bind(BudgetEntity budget, BudgetViewModel viewModel, DecimalFormat formatter) {
-            tvCategory.setText(budget.categoryId == null ? "Tổng thể" : budget.categoryId);
+        public void bind(BudgetEntity budget, BudgetViewModel viewModel, DecimalFormat formatter, OnItemClickListener listener) {
+            String periodName = "";
+            switch (budget.period) {
+                case "weekly": periodName = " (Tuần)"; break;
+                case "monthly": periodName = " (Tháng)"; break;
+                case "quarterly": periodName = " (Quý)"; break;
+                case "yearly": periodName = " (Năm)"; break;
+            }
+
+            tvCategory.setText((budget.categoryId == null ? "Tổng thể" : budget.categoryId) + periodName);
             tvDates.setText(budget.startDate + " - " + budget.endDate);
             tvTotal.setText("Ngân sách: " + formatter.format(budget.amount) + " đ");
 
+            itemView.setOnClickListener(v -> {
+                if (listener != null) listener.onItemClick(budget);
+            });
+
+            ivDelete.setOnClickListener(v -> {
+                new AlertDialog.Builder(itemView.getContext())
+                        .setTitle("Xóa ngân sách")
+                        .setMessage("Bạn có chắc chắn muốn xóa ngân sách này?")
+                        .setPositiveButton("Xóa", (dialog, which) -> viewModel.delete(budget))
+                        .setNegativeButton("Hủy", null)
+                        .show();
+            });
+
             AppDatabase.executor.execute(() -> {
-                // Đã sửa: Truyền thêm budget.userId vào làm tham số thứ nhất
                 double spent = viewModel.getSpentAmount(budget.userId, budget.categoryId, budget.startDate, budget.endDate);
                 int percent = budget.amount > 0 ? (int) ((spent / budget.amount) * 100) : 0;
 
