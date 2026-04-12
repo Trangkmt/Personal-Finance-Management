@@ -18,6 +18,7 @@ import java.util.List;
 public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.ViewHolder> {
 
     public interface OnTransactionActionListener {
+        void onItemClick(int position);
         void onEdit(int position);
         void onDelete(int position);
     }
@@ -53,6 +54,10 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         int colorRes = item.isIncome() ? R.color.income_green : R.color.expense_red;
         holder.tvAmount.setTextColor(holder.itemView.getContext().getColor(colorRes));
 
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onItemClick(position);
+        });
+
         holder.ivEdit.setOnClickListener(v -> listener.onEdit(position));
         holder.ivDelete.setOnClickListener(v -> listener.onDelete(position));
     }
@@ -73,7 +78,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             tvDate = itemView.findViewById(R.id.tvTransactionDate);
             tvAmount = itemView.findViewById(R.id.tvTransactionAmount);
             ivEdit = itemView.findViewById(R.id.ivEdit);
-            ivDelete = itemView.findViewById(R.id.ivDelete); // Sửa ID: ivDeleteBudget -> ivDelete
+            ivDelete = itemView.findViewById(R.id.ivDelete);
         }
     }
 }

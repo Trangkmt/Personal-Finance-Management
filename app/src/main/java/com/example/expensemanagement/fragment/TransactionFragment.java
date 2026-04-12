@@ -50,7 +50,6 @@ import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -113,8 +112,7 @@ public class TransactionFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_transaction, container, false);
     }
 
@@ -235,6 +233,21 @@ public class TransactionFragment extends Fragment {
         if (tilCustomCategory != null) {
             tilCustomCategory.setVisibility(isOther ? View.VISIBLE : View.GONE);
         }
+        
+        if (isOther && etCustomCategory != null) {
+            etCustomCategory.setText(categoryName.equals("Khác") ? "" : categoryName);
+        }
+
+        updateCategoryUI(categoryName);
+    }
+
+    private void updateCategoryUI(String categoryName) {
+        int activeColor = ContextCompat.getColor(requireContext(), R.color.primary_green);
+        int inactiveColor = ContextCompat.getColor(requireContext(), R.color.divider);
+
+        btnCatFood.setBackgroundTintList(ColorStateList.valueOf("Ăn uống".equals(categoryName) ? activeColor : inactiveColor));
+        btnCatShopping.setBackgroundTintList(ColorStateList.valueOf("Mua sắm".equals(categoryName) ? activeColor : inactiveColor));
+        btnCatOther.setBackgroundTintList(ColorStateList.valueOf(!"Ăn uống".equals(categoryName) && !"Mua sắm".equals(categoryName) ? activeColor : inactiveColor));
     }
 
     private void updateButtonState() {
@@ -389,8 +402,8 @@ public class TransactionFragment extends Fragment {
             btnPickImage.setTextColor(Color.WHITE);
 
             Toast.makeText(getContext(),
-                    "Đã tải ảnh thành công! Nhấn nút để bắt đầu quét.",
-                    Toast.LENGTH_SHORT).show();
+                    "Quyền riêng tư: Ảnh được xử lý hoàn toàn ngoại tuyến trên thiết bị.",
+                    Toast.LENGTH_LONG).show();
 
         } catch (Exception e) {
             Toast.makeText(getContext(), "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -461,51 +474,69 @@ public class TransactionFragment extends Fragment {
     }
 
     private void smartParseTransaction(String rawText) {
-        // --- Parse Amount ---
-        Pattern amountKeywordPattern = Pattern.compile(
-                "(?i)(?:tổng cộng|thanh toán|số tiền|amount|total|sum)[:\\s]*([\\d.,]+)"
-        );
-        Matcher keywordMatcher = amountKeywordPattern.matcher(rawText);
-        String foundAmount = "";
+        String lowerText = rawText.toLowerCase();
 
-        if (keywordMatcher.find()) {
-            foundAmount = keywordMatcher.group(1).replaceAll("[.,]", "");
+        // 1. Tự động nhận diện danh mục (Category Auto-mapping)
+        String guessedCategory = "Khác";
+        boolean isKnownCategory = false;
+        
+        if (lowerText.contains("grab") || lowerText.contains("be ") || lowerText.contains("xanh sm") || lowerText.contains("xe máy") || lowerText.contains("ô tô")) {
+            guessedCategory = "Di chuyển";
+            isKnownCategory = true;
+        } else if (lowerText.contains("food") || lowerText.contains("coffee") || lowerText.contains("highlands") || lowerText.contains("starbucks") || lowerText.contains("phở") || lowerText.contains("cơm") || lowerText.contains("bún")) {
+            guessedCategory = "Ăn uống";
+            isKnownCategory = true;
+        } else if (lowerText.contains("siêu thị") || lowerText.contains("mart") || lowerText.contains("vinmart") || lowerText.contains("winmart") || lowerText.contains("mall") || lowerText.contains("shopee") || lowerText.contains("lazada")) {
+            guessedCategory = "Mua sắm";
+            isKnownCategory = true;
+        } else if (lowerText.contains("thuốc") || lowerText.contains("bệnh viện") || lowerText.contains("pharmacy") || lowerText.contains("y tế")) {
+            guessedCategory = "Y tế";
+            isKnownCategory = true;
+        } else if (lowerText.contains("rạp chiếu phim") || lowerText.contains("cgv") || lowerText.contains("lotte cinema") || lowerText.contains("karaoke")) {
+            guessedCategory = "Giải trí";
+            isKnownCategory = true;
+        }
+        
+        // Cập nhật giao diện danh mục
+        // Nếu là danh mục đã biết, ta vẫn chọn "Khác" nhưng điền tên vào ô nhập liệu
+        // Hoặc ta có thể chọn trực tiếp nếu nó khớp với các nút cứng.
+        
+        if (isKnownCategory && (guessedCategory.equals("Ăn uống") || guessedCategory.equals("Mua sắm"))) {
+            selectCategory(guessedCategory, false);
         } else {
-            Pattern anyAmountPattern = Pattern.compile("(\\d{1,3}([\\.,]\\d{3})+)");
-            Matcher anyMatcher = anyAmountPattern.matcher(rawText);
-            long maxVal = 0;
+            // Nếu là các danh mục khác (Di chuyển, Y tế, Giải trí...), chọn "Khác" và điền Text
+            selectCategory(guessedCategory, true);
+        }
 
-            while (anyMatcher.find()) {
-                try {
-                    long val = Long.parseLong(anyMatcher.group(1).replaceAll("[\\.,]", ""));
-                    if (val > maxVal) {
-                        maxVal = val;
-                        foundAmount = String.valueOf(val);
-                    }
-                } catch (Exception ignored) {
+        // 2. Trích xuất số tiền (Amount Extraction)
+        Pattern anyAmountPattern = Pattern.compile("(\\d{1,3}([\\.,]\\d{3})+)");
+        Matcher anyMatcher = anyAmountPattern.matcher(rawText);
+        long maxAmount = 0;
+
+        while (anyMatcher.find()) {
+            try {
+                String cleanAmount = anyMatcher.group(1).replaceAll("[\\.,]", "");
+                long val = Long.parseLong(cleanAmount);
+                if (val > maxAmount && val > 1000 && val != 2024 && val != 2025) {
+                    maxAmount = val;
                 }
-            }
+            } catch (Exception ignored) {}
         }
 
-        if (!foundAmount.isEmpty()) {
-            etAmount.setText(foundAmount);
+        if (maxAmount > 0) {
+            etAmount.setText(String.valueOf(maxAmount));
         }
 
-        // --- Parse Date ---
-        // Patterns: dd/MM/yyyy, dd-MM-yyyy, dd.MM.yyyy
+        // 3. Trích xuất ngày tháng
         Pattern datePattern = Pattern.compile("(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{4})");
         Matcher dateMatcher = datePattern.matcher(rawText);
         boolean dateFound = false;
         
         if (dateMatcher.find()) {
-            String d = dateMatcher.group(1);
-            String m = dateMatcher.group(2);
-            String y = dateMatcher.group(3);
-            
             try {
-                int day = Integer.parseInt(d);
-                int month = Integer.parseInt(m) - 1; // Calendar month is 0-indexed
-                int year = Integer.parseInt(y);
+                int day = Integer.parseInt(dateMatcher.group(1));
+                int month = Integer.parseInt(dateMatcher.group(2)) - 1;
+                int year = Integer.parseInt(dateMatcher.group(3));
                 
                 selectedDate.set(year, month, day);
                 updateDateDisplay();
@@ -513,19 +544,14 @@ public class TransactionFragment extends Fragment {
             } catch (Exception ignored) {}
         }
 
-        // Feedback to user
-        if (!foundAmount.isEmpty() || dateFound) {
+        if (maxAmount > 0 || dateFound || isKnownCategory) {
             StringBuilder msg = new StringBuilder("Đã trích xuất: ");
-            if (!foundAmount.isEmpty()) msg.append("Số tiền ");
-            if (!foundAmount.isEmpty() && dateFound) msg.append("và ");
-            if (dateFound) msg.append("Ngày");
+            if (maxAmount > 0) msg.append("Số tiền ");
+            if (dateFound) msg.append("Ngày ");
+            if (isKnownCategory) msg.append("Danh mục " + guessedCategory);
             
             Toast.makeText(getContext(), msg.toString(), Toast.LENGTH_LONG).show();
             tabLayoutEntry.getTabAt(0).select();
-        } else {
-            Toast.makeText(getContext(),
-                    "Không tìm thấy thông tin phù hợp trên hóa đơn",
-                    Toast.LENGTH_SHORT).show();
         }
     }
 }
