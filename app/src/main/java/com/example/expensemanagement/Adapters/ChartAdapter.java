@@ -33,7 +33,7 @@ public class ChartAdapter extends RecyclerView.Adapter<ChartAdapter.ChartViewHol
     private List<CategoryTotal> categoryList;
     private OnMonthClickListener listener;
 
-    // 🔥 PALETTE MÀU ĐẸP
+    // 🎨 PALETTE MÀU ĐẸP
     private final int[] MATERIAL_COLORS = new int[]{
             Color.parseColor("#F44336"),
             Color.parseColor("#E91E63"),
@@ -71,6 +71,7 @@ public class ChartAdapter extends RecyclerView.Adapter<ChartAdapter.ChartViewHol
     @Override
     public void onBindViewHolder(@NonNull ChartViewHolder holder, int position) {
 
+        // ================= BAR CHART =================
         if (position == 0) {
             holder.tvTitle.setText("Chi tiêu theo tháng");
 
@@ -160,6 +161,7 @@ public class ChartAdapter extends RecyclerView.Adapter<ChartAdapter.ChartViewHol
             holder.barChart.invalidate();
         }
 
+        // ================= PIE CHART =================
         else {
             holder.tvTitle.setText("Tỷ lệ danh mục");
 

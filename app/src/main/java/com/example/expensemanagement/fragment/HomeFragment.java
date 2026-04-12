@@ -191,8 +191,9 @@ public class HomeFragment extends Fragment {
 
         tvSelectedMonth.setText("📊 Tháng " + month);
 
-        // 🔥 FIX MÀU: KHÔNG set màu cứng nữa
+        // 🔥 FIX BUG: chỉ lấy expense
         List<CategoryTotal> newCategory = buildCategoryFromList(filtered);
+
         if (chartAdapter != null) {
             chartAdapter.updateCategoryList(newCategory);
         }
@@ -201,12 +202,16 @@ public class HomeFragment extends Fragment {
         loadDailyChart(month);
     }
 
+    // 🔥 FIX CHÍNH Ở ĐÂY
     private List<CategoryTotal> buildCategoryFromList(List<TransactionEntity> list) {
 
         Map<String, Double> map = new HashMap<>();
 
         for (TransactionEntity item : list) {
             if (item == null) continue;
+
+            // ❗ CHỈ LẤY CHI TIÊU
+            if (!"expense".equalsIgnoreCase(item.type)) continue;
 
             String category = item.categoryId;
             double amount = item.amount;
@@ -221,7 +226,7 @@ public class HomeFragment extends Fragment {
             ct.category = key;
             ct.total = map.get(key);
 
-            // để null để ChartAdapter tự random màu
+            // để null cho adapter random màu
             ct.color = null;
 
             result.add(ct);
@@ -229,7 +234,6 @@ public class HomeFragment extends Fragment {
 
         return result;
     }
-
     private void loadDailyChart(int month) {
 
         final android.content.Context context = getContext();
